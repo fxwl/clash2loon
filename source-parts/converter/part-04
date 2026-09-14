@@ -1,0 +1,12 @@
+    if (/^[A-Z][A-Z0-9-]*,/.test(raw)) { out.push(raw); continue; }
+    if (behavior === 'ipcidr') {
+      const type = raw.includes(':') ? 'IP-CIDR6' : 'IP-CIDR';
+      out.push(`${type},${raw}${addNoResolve ? ',no-resolve' : ''}`);
+    } else if (behavior === 'domain') {
+      if (raw.startsWith('+.')) out.push(`DOMAIN-SUFFIX,${raw.slice(2)}`);
+      else if (raw.startsWith('.')) out.push(`DOMAIN-SUFFIX,${raw.slice(1)}`);
+      else out.push(`DOMAIN-SUFFIX,${raw}`);
+    } else out.push(raw);
+  }
+  return out.join('\n') + (out.length ? '\n' : '');
+}

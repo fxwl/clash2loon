@@ -1,0 +1,141 @@
+    const raw = Array.isArray(group.proxies) ? group.proxies.map(cleanName).filter(Boolean) : [];
+    const nodeMembers = raw.filter(m => regularNodes.has(m));
+    const nodeSet = new Set(nodeMembers);
+    const filterNames = filtersFor(nodeMembers);
+    compressedNodeReferences += nodeMembers.length;
+
+    const members = [];
+    let insertedFilters = false;
+    for (const member of raw) {
+      if (nodeSet.has(member)) {
+        if (!insertedFilters) {
+          members.push(...filterNames);
+          insertedFilters = true;
+        }
+        continue;
+      }
+      members.push(member);
+    }
+    if (!insertedFilters && filterNames.length) members.push(...filterNames);
+
+    const missing = members.filter(m =>
+      !BUILTIN_POLICIES.has(m) &&
+      !groupNames.has(m) &&
+      !chains.has(m) &&
+      !m.startsWith('__C2L_NodeSet_')
+    );
+    if (missing.length) {
+      warnings.push({
+        code: 'GROUP_MEMBER_NOT_FOUND', group: name,
+        detail: `Unknown members after compaction: ${missing.slice(0, 10).join(' | ')}${missing.length > 10 ? ' ...' : ''}`
+      });
+    }
+
+    if (group.type === 'url-test') {
+      const params = [];
+      const tuning = effectiveUrlTestInterval(group, powerProfile);
+      if (group.url) params.push(`url=${group.url}`);
+      params.push(`interval=${tuning.effectiveInterval}`);
+      if (group.tolerance != null) params.push(`tolerance=${Number(group.tolerance) || 50}`);
+      else params.push('tolerance=50');
+      powerTuning.push({
+        group: name,
+        category: tuning.category,
+        sourceInterval: tuning.sourceInterval,
+        effectiveInterval: tuning.effectiveInterval
+      });
+      if (group.lazy != null) warnings.push({ code: 'GROUP_LAZY_DROPPED', group: name, detail: 'Mihomo lazy was omitted.' });
+      lines.push(`${name} = url-test,${members.join(',')},${params.join(',')}`);
+    } else if (group.type === 'select') {
+      lines.push(`${name} = select,${members.join(',')}`);
+    } else {
+      warnings.push({ code: 'GROUP_TYPE_DOWNGRADED', group: name, detail: `Unsupported group type ${group.type}; emitted as select.` });
+      lines.push(`${name} = select,${members.join(',')}`);
+    }
+  }
+  return {
+    groupLines: lines,
+    filterLines,
+    compressedNodeReferences,
+    uniqueNodeSets: filterCache.size,
+    powerTuning
+  };
+}
+
+export function convertClashToLoon(clash, options = {}) {
+  const baseUrl = String(options.baseUrl || '').replace(/\/$/, '');
+  const token = options.token || '';
+  const warnings = [];
+  const power = resolvePowerProfile(options.powerProfile);
+  if (!power.valid) {
+    warnings.push({
+      code: 'POWER_PROFILE_INVALID',
+      detail: `Unknown POWER_PROFILE=${power.requested}; balanced was used.`
+    });
+  }
+  const proxies = Array.isArray(clash?.proxies) ? clash.proxies : [];
+  const groups = Array.isArray(clash?.['proxy-groups']) ? clash['proxy-groups'] : [];
+  const providers = clash?.['rule-providers'] && typeof clash['rule-providers'] === 'object' ? clash['rule-providers'] : {};
+  const rules = Array.isArray(clash?.rules) ? clash.rules : [];
+
+  const usedNames = new Set(proxies.map(p => cleanName(p.name)).filter(Boolean));
+  const dialerTargets = new Map();
+  const nodeOnlyLines = [];
+  const nodeEntries = [];
+  const regularNodeNames = [];
+  let convertedNodes = 0;
+
+  for (const proxy of proxies) {
+    const originalName = cleanName(proxy.name);
+    if (!originalName) continue;
+    const clone = { ...proxy };
+    if (clone['dialer-proxy']) {
+      const landingName = uniqueName(`${originalName} · 落地`, usedNames);
+      clone.name = landingName;
+      dialerTargets.set(originalName, {
+        chainName: originalName, landingName,
+        via: cleanName(clone['dialer-proxy']), udp: bool(clone.udp, true)
+      });
+    } else {
+      regularNodeNames.push(originalName);
+    }
+    const line = convertProxyLine(clone, warnings);
+    if (line) {
+      nodeOnlyLines.push(line);
+      const kind = str(proxy.type).toLowerCase();
+      const subtype = kind === 'vless'
+        ? (proxy['reality-opts'] ? 'vless-reality' : (proxy.network === 'ws' ? 'vless-ws' : 'vless-other'))
+        : kind;
+      nodeEntries.push({
+        index: nodeEntries.length,
+        name: cleanName(clone.name),
+        originalName,
+        type: kind,
+        subtype,
+        landing: Boolean(proxy['dialer-proxy']),
+        line
+      });
+      convertedNodes++;
+    }
+  }
+
+  const groupNames = new Set(groups.map(g => cleanName(g.name)).filter(Boolean));
+  const chainLines = [];
+  for (const d of dialerTargets.values()) {
+    if (!groupNames.has(d.via) && !BUILTIN_POLICIES.has(d.via)) {
+      warnings.push({ code: 'DIALER_POLICY_NOT_FOUND', node: d.chainName, detail: `dialer-proxy target ${d.via} was not found; chain omitted.` });
+      continue;
+    }
+    chainLines.push(`${d.chainName} = ${d.via},${d.landingName},udp=${d.udp}`);
+  }
+
+  const nodeSourceAlias = '__C2L_Nodes';
+  const nodesUrl = `${baseUrl}/nodes${makeQuery(token)}`;
+  const compact = createCompactGroups(
+    groups,
+    regularNodeNames,
+    [...dialerTargets.keys()],
+    nodeSourceAlias,
+    warnings,
+    power.profile
+  );

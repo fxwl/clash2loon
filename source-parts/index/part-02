@@ -1,0 +1,122 @@
+}
+
+async function handleStatus(request, env, ctx) {
+  const ttl = Math.max(0, Number(env.CACHE_TTL) || 300);
+  const powerProfile = String(env.POWER_PROFILE || 'balanced').toLowerCase();
+  const cacheVariant = `status:${powerProfile}`;
+  const hit = await cacheGet(request, cacheVariant);
+  if (hit) return hit;
+  const { upstream, loonBase, converted } = await loadModel(request, env);
+  const body = {
+    ok: true,
+    generatedAt: new Date().toISOString(),
+    upstream: {
+      hasSubscriptionUserinfo: Boolean(upstream.subscriptionUserinfo),
+      subscriptionUserinfoForwarded: Boolean(normalizeSubscriptionUserinfo(upstream.subscriptionUserinfo)),
+      etag: upstream.etag || null,
+      lastModified: upstream.lastModified || null
+    },
+    loonBase: {
+      source: loonBase.source,
+      etag: loonBase.etag || null,
+      lastModified: loonBase.lastModified || null,
+      finalPolicySource: converted.mergedFinalPolicySource,
+      preservedUnknownSections: converted.preservedUnknownSections
+    },
+    stats: converted.stats,
+    finalPolicy: converted.finalPolicy,
+    warnings: converted.warnings
+  };
+  const response = json(body, 200, { 'cache-control': `private, max-age=${ttl}` });
+  ctx.waitUntil(cachePut(request, response.clone(), ttl, cacheVariant));
+  return response;
+}
+
+async function fetchProviderSource(providerName, provider) {
+  // Inspect metadata first. For MetaCubeX .mrs this avoids downloading the binary file.
+  let plan = convertProviderToLoon(providerName, provider, '');
+
+  if (plan.mode === 'refetch') {
+    const r = await fetch(plan.url, {
+      headers: { 'user-agent': 'Clash2Loon-Worker/1.5' },
+      redirect: 'follow'
+    });
+    if (!r.ok) throw new Error(`Text sibling for provider ${providerName} returned HTTP ${r.status}`);
+    const t = await r.text();
+    return {
+      body: normalizeRuleText(t, plan.transform === 'cidr' ? 'ipcidr' : 'classical'),
+      warnings: plan.warnings,
+      sourceUrl: plan.url
+    };
+  }
+
+  if (plan.mode === 'unsupported') {
+    throw new Error(plan.warnings?.[0]?.detail || `Provider ${providerName} is unsupported.`);
+  }
+
+  const first = await fetch(provider.url, {
+    headers: { 'user-agent': 'Clash2Loon-Worker/1.5' },
+    redirect: 'follow'
+  });
+  if (!first.ok) throw new Error(`Provider ${providerName} returned HTTP ${first.status}`);
+  const firstText = await first.text();
+  plan = convertProviderToLoon(providerName, provider, firstText);
+
+  if (plan.mode === 'yaml') {
+    const parsed = parse(firstText);
+    const payload = Array.isArray(parsed) ? parsed : parsed?.payload;
+    if (!Array.isArray(payload)) throw new Error(`YAML provider ${providerName} has no payload array.`);
+    const joined = payload.map(v => String(v)).join('\n');
+    return {
+      body: normalizeRuleText(joined, provider.behavior || 'classical'),
+      warnings: plan.warnings,
+      sourceUrl: provider.url
+    };
+  }
+
+  return {
+    body: normalizeRuleText(firstText, provider.behavior || 'classical'),
+    warnings: plan.warnings,
+    sourceUrl: provider.url
+  };
+}
+
+async function handleRule(request, env, ctx, providerName) {
+  const ttl = Math.max(0, Number(env.RULE_CACHE_TTL) || 3600);
+  const hit = await cacheGet(request, `rule:${providerName}`);
+  if (hit) return hit;
+
+  const u = new URL(request.url);
+  const source = u.searchParams.get('source');
+  if (!source) return text(`Missing source for rule provider: ${providerName}\n`, 400);
+  const provider = {
+    url: source,
+    behavior: u.searchParams.get('behavior') || 'classical',
+    format: u.searchParams.get('format') || ''
+  };
+
+  const result = await fetchProviderSource(providerName, provider);
+  const response = new Response(result.body, {
+    headers: {
+      'content-type': 'text/plain; charset=utf-8',
+      'cache-control': `private, max-age=${ttl}`,
+      'x-clash2loon-provider': providerName,
+      'x-clash2loon-source': result.sourceUrl
+    }
+  });
+  ctx.waitUntil(cachePut(request, response.clone(), ttl, `rule:${providerName}`));
+  return response;
+}
+
+async function handleInline(request, env, ctx, index) {
+  const ttl = Math.max(0, Number(env.CACHE_TTL) || 300);
+  const hit = await cacheGet(request, `inline:${index}`);
+  if (hit) return hit;
+  const u = new URL(request.url);
+  const rule = u.searchParams.get('rule');
+  if (!rule) return text(`Missing inline rule payload: ${index}\n`, 400);
+  const response = new Response(`${rule}\n`, {
+    headers: {
+      'content-type': 'text/plain; charset=utf-8',
+      'cache-control': `private, max-age=${ttl}`
+    }

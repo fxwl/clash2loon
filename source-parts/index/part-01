@@ -1,0 +1,141 @@
+    subscriptionUserinfo: resp.headers.get('subscription-userinfo') || '',
+    etag: resp.headers.get('etag') || '',
+    lastModified: resp.headers.get('last-modified') || ''
+  };
+}
+
+function parseCsv(value) {
+  return String(value || '')
+    .split(',')
+    .map(v => v.trim())
+    .filter(Boolean);
+}
+
+async function loadModel(request, env) {
+  const [upstream, loonBase] = await Promise.all([
+    fetchUpstreamClash(env),
+    fetchBaseLoon(env)
+  ]);
+  const clash = parse(upstream.body);
+  if (!clash || typeof clash !== 'object') throw new Error('Upstream content is not a Clash YAML object.');
+  const url = new URL(request.url);
+  const baseUrl = `${url.protocol}//${url.host}`;
+  const rawConverted = convertClashToLoon(clash, {
+    baseUrl,
+    token: env.ACCESS_TOKEN,
+    powerProfile: env.POWER_PROFILE || 'balanced',
+    controlPlanePolicy: env.CONTROL_PLANE_POLICY || '',
+    controlPlaneDomains: parseCsv(env.CONTROL_PLANE_DOMAINS)
+  });
+  const managedPlugins = buildManagedPlugins(env);
+  const merged = mergeLoonConfigs(loonBase.body, rawConverted.config, {
+    pluginLines: managedPlugins.lines,
+    selfHost: url.hostname
+  });
+  const mergedLines = merged.config.split(/\n/);
+  const mergedConfigBytes = new TextEncoder().encode(merged.config).length;
+  const mergedMaxLineBytes = Math.max(0, ...mergedLines.map(line => new TextEncoder().encode(line).length));
+  const converted = {
+    ...rawConverted,
+    config: merged.config,
+    warnings: [
+      ...(loonBase.warning ? [loonBase.warning] : []),
+      ...managedPlugins.warnings,
+      ...rawConverted.warnings,
+      ...merged.warnings
+    ],
+    stats: {
+      ...rawConverted.stats,
+      mergedConfigBytes,
+      mergedMaxLineBytes,
+      managedPlugins: {
+        pluginCount: managedPlugins.pluginCount,
+        source: managedPlugins.source
+      },
+      merge: merged.stats
+    },
+    preservedUnknownSections: merged.preservedUnknownSections,
+    mergedFinalPolicySource: 'yaml'
+  };
+  converted.stats.warnings = converted.warnings.length;
+  return { clash, upstream, loonBase, converted };
+}
+
+function normalizeSubscriptionUserinfo(value) {
+  const s = String(value || '');
+  const fields = {};
+  for (const part of s.split(';')) {
+    const m = part.trim().match(/^(upload|download|total|expire)=(\d+)$/i);
+    if (m) fields[m[1].toLowerCase()] = m[2];
+  }
+  if (!fields.upload || !fields.download || !fields.total) return '';
+  const out = [`upload=${fields.upload}`, `download=${fields.download}`, `total=${fields.total}`];
+  if (fields.expire) out.push(`expire=${fields.expire}`);
+  return out.join('; ');
+}
+
+function subscriptionHeaders(upstream, ttl, filename) {
+  const h = {
+    'content-type': 'text/plain; charset=utf-8',
+    'content-disposition': `inline; filename="${filename}"`,
+    'cache-control': `private, max-age=${ttl}`,
+    'x-clash2loon-generated-at': new Date().toISOString(),
+    'x-clash2loon-profile': 'v1.5-strict-native'
+  };
+  const safeUserinfo = normalizeSubscriptionUserinfo(upstream?.subscriptionUserinfo);
+  if (safeUserinfo) h['subscription-userinfo'] = safeUserinfo;
+  return h;
+}
+
+async function handleLoon(request, env, ctx) {
+  const ttl = Math.max(0, Number(env.CACHE_TTL) || 300);
+  const powerProfile = String(env.POWER_PROFILE || 'balanced').toLowerCase();
+  const cacheVariant = `loon:${powerProfile}`;
+  const hit = await cacheGet(request, cacheVariant);
+  if (hit) return hit;
+  const { upstream, converted } = await loadModel(request, env);
+  const response = new Response(converted.config, {
+    headers: subscriptionHeaders(upstream, ttl, 'clash2loon.lcf')
+  });
+  ctx.waitUntil(cachePut(request, response.clone(), ttl, cacheVariant));
+  return response;
+}
+
+async function handleNodes(request, env, ctx) {
+  const ttl = Math.max(0, Number(env.CACHE_TTL) || 300);
+  const u = new URL(request.url);
+  const type = (u.searchParams.get('type') || 'all').toLowerCase();
+  const offset = Math.max(0, Number(u.searchParams.get('offset')) || 0);
+  const rawLimit = Number(u.searchParams.get('limit'));
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 500) : 500;
+  const cacheVariant = `nodes:${type}:${offset}:${limit}`;
+  const hit = await cacheGet(request, cacheVariant);
+  if (hit) return hit;
+  const { upstream, converted } = await loadModel(request, env);
+
+  const supported = new Set([
+    'all', 'vless', 'vless-ws', 'vless-reality', 'vless-other',
+    'trojan', 'hysteria2', 'landing', 'regular'
+  ]);
+  if (!supported.has(type)) {
+    return json({ ok: false, error: `Unknown node type: ${type}`, supported: [...supported] }, 400);
+  }
+
+  let entries = converted.nodeEntries || [];
+  if (type === 'landing') entries = entries.filter(n => n.landing);
+  else if (type === 'regular') entries = entries.filter(n => !n.landing);
+  else if (type === 'vless') entries = entries.filter(n => n.type === 'vless');
+  else if (type !== 'all') entries = entries.filter(n => n.subtype === type);
+
+  const total = entries.length;
+  entries = entries.slice(offset, offset + limit);
+  const body = entries.map(n => n.line).join('\n') + (entries.length ? '\n' : '');
+  const headers = subscriptionHeaders(upstream, ttl, 'loon-nodes.list');
+  headers['x-clash2loon-note'] = 'v1.5 strict native; use type/offset/limit to isolate parser crashes';
+  headers['x-clash2loon-node-type'] = type;
+  headers['x-clash2loon-node-total'] = String(total);
+  headers['x-clash2loon-node-offset'] = String(offset);
+  headers['x-clash2loon-node-count'] = String(entries.length);
+  const response = new Response(body, { headers });
+  ctx.waitUntil(cachePut(request, response.clone(), ttl, cacheVariant));
+  return response;

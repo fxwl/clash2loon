@@ -1,0 +1,121 @@
+import { parse } from 'yaml';
+import { EMBEDDED_LOON_BASE } from './base-loon.js';
+import { mergeLoonConfigs } from './base-merge.js';
+import { buildManagedPlugins } from './managed-plugins.js';
+import {
+  convertClashToLoon,
+  convertProviderToLoon,
+  normalizeRuleText
+} from './converter.js';
+
+function json(data, status = 200, extraHeaders = {}) {
+  return new Response(JSON.stringify(data, null, 2), {
+    status,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
+      ...extraHeaders
+    }
+  });
+}
+
+function text(body, status = 200, extraHeaders = {}) {
+  return new Response(body, {
+    status,
+    headers: {
+      'content-type': 'text/plain; charset=utf-8',
+      'cache-control': 'no-store',
+      ...extraHeaders
+    }
+  });
+}
+
+function getToken(request) {
+  const url = new URL(request.url);
+  const query = url.searchParams.get('token');
+  if (query) return query;
+  const auth = request.headers.get('authorization') || '';
+  const m = auth.match(/^Bearer\s+(.+)$/i);
+  return m ? m[1] : '';
+}
+
+function authorized(request, env) {
+  if (!env.ACCESS_TOKEN) return false;
+  return getToken(request) === env.ACCESS_TOKEN;
+}
+
+function cacheKeyFor(request, suffix = '') {
+  const u = new URL(request.url);
+  u.hash = '';
+  if (suffix) u.searchParams.set('__variant', suffix);
+  return new Request(u.toString(), { method: 'GET' });
+}
+
+async function cacheGet(request, suffix = '') {
+  if (request.method !== 'GET') return null;
+  return caches.default.match(cacheKeyFor(request, suffix));
+}
+
+async function cachePut(request, response, ttl, suffix = '') {
+  if (request.method !== 'GET' || ttl <= 0 || response.status !== 200) return;
+  const headers = new Headers(response.headers);
+  headers.set('cache-control', `public, max-age=${ttl}`);
+  const cached = new Response(response.body, { status: response.status, headers });
+  await caches.default.put(cacheKeyFor(request, suffix), cached);
+}
+
+
+async function fetchBaseLoon(env) {
+  if (!env.LOON_BASE_URL) {
+    return {
+      body: EMBEDDED_LOON_BASE,
+      source: 'embedded',
+      etag: '',
+      lastModified: '',
+      warning: null
+    };
+  }
+
+  try {
+    const resp = await fetch(env.LOON_BASE_URL, {
+      headers: {
+        'user-agent': 'Clash2Loon-Worker/1.5',
+        'accept': 'text/plain,*/*'
+      },
+      redirect: 'follow'
+    });
+    if (!resp.ok) throw new Error(`Loon base URL returned HTTP ${resp.status}`);
+    return {
+      body: await resp.text(),
+      source: 'remote',
+      etag: resp.headers.get('etag') || '',
+      lastModified: resp.headers.get('last-modified') || '',
+      warning: null
+    };
+  } catch (error) {
+    return {
+      body: EMBEDDED_LOON_BASE,
+      source: 'embedded-fallback',
+      etag: '',
+      lastModified: '',
+      warning: {
+        code: 'LOON_BASE_FETCH_FAILED',
+        detail: `${error?.message || error}; embedded Loon base was used instead.`
+      }
+    };
+  }
+}
+
+async function fetchUpstreamClash(env) {
+  if (!env.CLASH_URL) throw new Error('Missing CLASH_URL secret.');
+  const resp = await fetch(env.CLASH_URL, {
+    headers: {
+      'user-agent': 'Clash2Loon-Worker/1.5',
+      'accept': 'text/yaml,text/plain,*/*'
+    },
+    redirect: 'follow'
+  });
+  if (!resp.ok) throw new Error(`Upstream Clash URL returned HTTP ${resp.status}`);
+  const body = await resp.text();
+  return {
+    body,

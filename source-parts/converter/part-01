@@ -1,0 +1,149 @@
+      code: 'HY2_PORT_HOPPING_DROPPED', node: name,
+      detail: `Mihomo ports=${proxy.ports} was omitted; Loon node format does not document HY2 port hopping.`
+    });
+  }
+  params.push(`udp=${bool(proxy.udp, true)}`);
+  return `${name} = Hysteria2,${proxy.server},${proxy.port},${q(proxy.password)},${params.join(',')}`;
+}
+function convertProxyLine(proxy, warnings) {
+  switch (str(proxy.type).toLowerCase()) {
+    case 'vless': return convertVless(proxy, warnings);
+    case 'trojan': return convertTrojan(proxy);
+    case 'hysteria2': return convertHysteria2(proxy, warnings);
+    default:
+      warnings.push({ code: 'PROXY_TYPE_UNSUPPORTED', node: cleanName(proxy.name), detail: `Unsupported Clash proxy type: ${proxy.type}` });
+      return null;
+  }
+}
+
+function getRulePolicy(rule) {
+  const parts = String(rule).split(',');
+  const type = parts[0];
+  if (type === 'MATCH') return parts[1] || null;
+  if (type === 'RULE-SET') return parts[2] || null;
+  return parts.length >= 3 ? parts[parts.length - 1] : null;
+}
+function stripInlinePolicy(rule) {
+  const parts = String(rule).split(',');
+  const type = parts[0];
+  if (type === 'PROCESS-NAME') return null;
+  if (parts.length < 3) return null;
+  const knownNoResolve = parts[parts.length - 1] === 'no-resolve';
+  if (knownNoResolve) return [...parts.slice(0, -2), 'no-resolve'].join(',');
+  return parts.slice(0, -1).join(',');
+}
+function encodePathSegment(s) { return encodeURIComponent(s).replace(/%2F/gi, '%252F'); }
+function makeQuery(token, extra = {}) {
+  const sp = new URLSearchParams();
+  if (token) sp.set('token', token);
+  for (const [k, v] of Object.entries(extra)) if (v != null && v !== '') sp.set(k, String(v));
+  const out = sp.toString();
+  return out ? `?${out}` : '';
+}
+
+function renderGeneral() {
+  return [
+    '[General]', 'ip-mode = v4-only', 'ipv6-vif = off', 'dns-server = system',
+    'sni-sniffing = true', 'disable-stun = true', 'dns-reject-mode = LoopbackIP',
+    'domain-reject-mode = DNS', 'udp-fallback-mode = REJECT',
+    'allow-wifi-access = false', 'interface-mode = auto',
+    'test-timeout = 5', 'disconnect-on-policy-change = false',
+    'internet-test-url = http://www.gstatic.com/generate_204',
+    'proxy-test-url = http://www.gstatic.com/generate_204',
+    'skip-proxy = 192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,localhost,*.local',
+    'bypass-tun = 10.0.0.0/8,100.64.0.0/10,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,192.0.0.0/24,192.0.2.0/24,192.88.99.0/24,192.168.0.0/16,198.51.100.0/24,203.0.113.0/24,224.0.0.0/4,255.255.255.255/32'
+  ].join('\n');
+}
+function renderPlugins() {
+  return '[Plugin]';
+}
+
+function chunkNodeNames(names, maxNames = 36, maxRegexBytes = 1200) {
+  const chunks = [];
+  let current = [];
+  let bytes = 0;
+  for (const name of names) {
+    const token = regexEscape(name);
+    const tokenBytes = new TextEncoder().encode(token).length + 1;
+    if (current.length && (current.length >= maxNames || bytes + tokenBytes > maxRegexBytes)) {
+      chunks.push(current);
+      current = [];
+      bytes = 0;
+    }
+    current.push(name);
+    bytes += tokenBytes;
+  }
+  if (current.length) chunks.push(current);
+  return chunks;
+}
+
+const POWER_PROFILES = new Set(['source', 'performance', 'balanced', 'battery']);
+
+function resolvePowerProfile(value) {
+  const requested = cleanName(value || 'balanced').toLowerCase();
+  return {
+    requested,
+    profile: POWER_PROFILES.has(requested) ? requested : 'balanced',
+    valid: POWER_PROFILES.has(requested)
+  };
+}
+
+function classifyUrlTestGroup(name) {
+  const n = cleanName(name);
+  if (/家宽/.test(n)) return 'home';
+  if (/低倍|低倍率/.test(n)) return 'low';
+  if (/自动选择/.test(n)) return 'primary';
+  if (/香港|台湾|日本|韩国|新加坡|美国/.test(n)) return 'region';
+  return 'other';
+}
+
+function effectiveUrlTestInterval(group, profile) {
+  const sourceInterval = Math.max(1, Number(group.interval) || 300);
+  const category = classifyUrlTestGroup(group.name);
+
+  if (profile === 'source') {
+    return { sourceInterval, effectiveInterval: sourceInterval, category };
+  }
+  if (profile === 'performance') {
+    return { sourceInterval, effectiveInterval: Math.min(sourceInterval, 300), category };
+  }
+
+  const target = profile === 'battery'
+    ? { primary: 1800, region: 1800, low: 3600, home: 1800, other: 1800 }
+    : { primary: 600, region: 900, low: 1800, home: 600, other: 900 };
+
+  return {
+    sourceInterval,
+    effectiveInterval: Math.max(sourceInterval, target[category] || target.other),
+    category
+  };
+}
+
+function createCompactGroups(groups, regularNodeNames, chainNames, sourceAlias, warnings, powerProfile = 'balanced') {
+  const regularNodes = new Set(regularNodeNames);
+  const chains = new Set(chainNames);
+  const groupNames = new Set(groups.map(g => cleanName(g.name)).filter(Boolean));
+  const filterCache = new Map();
+  const filterLines = [];
+  const powerTuning = [];
+  let compressedNodeReferences = 0;
+
+  function filtersFor(nodeMembers) {
+    if (!nodeMembers.length) return [];
+    const key = nodeMembers.join('\u0001');
+    if (filterCache.has(key)) return filterCache.get(key);
+    const hash = fnv1a(key);
+    const chunks = chunkNodeNames(nodeMembers);
+    const names = chunks.map((chunk, idx) => {
+      const filterName = `__C2L_NodeSet_${hash}_${idx + 1}`;
+      const regex = `^(?:${chunk.map(regexEscape).join('|')})$`;
+      filterLines.push(`${filterName} = NameRegex,${sourceAlias}, FilterKey = ${q(regex)}`);
+      return filterName;
+    });
+    filterCache.set(key, names);
+    return names;
+  }
+
+  const lines = [];
+  for (const group of groups) {
+    const name = cleanName(group.name);

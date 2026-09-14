@@ -1,0 +1,120 @@
+const BUILTIN_POLICIES = new Set([
+  'DIRECT', 'REJECT', 'REJECT-DROP', 'REJECT-NO-DROP', 'PROXY'
+]);
+
+function str(v) { return v == null ? '' : String(v); }
+function q(v) {
+  const s = str(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n]+/g, ' ');
+  return `"${s}"`;
+}
+function pv(v) {
+  // Follow Loon's documented examples for named parameters: path=/x,
+  // host=example.com, sni=example.com, short-id=abcd, alpn=http1.1.
+  // Quote only when a delimiter would make the config line ambiguous.
+  const s = str(v).replace(/[\r\n]+/g, ' ').trim();
+  return /[,"\s]/.test(s) ? q(s) : s;
+}
+function cleanName(v) { return str(v).replace(/[\r\n]+/g, ' ').trim(); }
+function bool(v, fallback = false) { return v == null ? fallback : Boolean(v); }
+function uniqueName(preferred, used) {
+  let out = preferred;
+  let i = 2;
+  while (used.has(out)) out = `${preferred} ${i++}`;
+  used.add(out);
+  return out;
+}
+function regexEscape(v) {
+  return cleanName(v).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+function fnv1a(text) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}
+
+function wsOptions(proxy, params) {
+  const ws = proxy['ws-opts'] || {};
+  if (ws.path) params.push(`path=${pv(ws.path)}`);
+  const headers = ws.headers || {};
+  const host = headers.Host ?? headers.host;
+  if (host) params.push(`host=${pv(Array.isArray(host) ? host[0] : host)}`);
+}
+function httpOptions(proxy, params) {
+  const h = proxy['http-opts'] || {};
+  if (Array.isArray(h.path) && h.path.length) params.push(`path=${pv(h.path[0])}`);
+  else if (h.path) params.push(`path=${pv(h.path)}`);
+  const headers = h.headers || {};
+  const host = headers.Host ?? headers.host;
+  if (host) params.push(`host=${pv(Array.isArray(host) ? host[0] : host)}`);
+}
+
+// Conservative on purpose: tls-profile requires newer Loon builds and Mihomo's
+// client-fingerprint vocabulary is not one-to-one with Loon. The official
+// Reality example does not require tls-profile, so v1.4 omits it by default.
+function tlsCommon(proxy, params, tlsEnabled = true) {
+  if (!tlsEnabled) return;
+  const sni = proxy.servername ?? proxy.sni;
+  if (sni) params.push(`sni=${pv(sni)}`);
+  if (proxy['skip-cert-verify'] != null) {
+    params.push(`skip-cert-verify=${bool(proxy['skip-cert-verify'])}`);
+  }
+}
+
+function convertVless(proxy, warnings) {
+  const name = cleanName(proxy.name);
+  const transport = proxy.network || 'tcp';
+  const params = [`transport=${transport}`];
+  if (transport === 'ws') wsOptions(proxy, params);
+  else if (transport === 'http') httpOptions(proxy, params);
+
+  const reality = proxy['reality-opts'];
+  const tlsEnabled = bool(proxy.tls) || Boolean(reality);
+  if (proxy.flow) params.push(`flow=${proxy.flow}`);
+  if (reality) {
+    if (reality['public-key']) params.push(`public-key=${q(reality['public-key'])}`);
+    if (reality['short-id'] != null) params.push(`short-id=${pv(reality['short-id'])}`);
+    if (reality['_spider-x']) {
+      warnings.push({
+        code: 'VLESS_REALITY_SPIDER_X_DROPPED', node: name,
+        detail: 'Mihomo reality-opts._spider-x has no documented Loon equivalent and was omitted.'
+      });
+    }
+  }
+  params.push(`over-tls=${tlsEnabled}`);
+  tlsCommon(proxy, params, tlsEnabled);
+  params.push(`udp=${bool(proxy.udp, true)}`);
+  return `${name} = VLESS,${proxy.server},${proxy.port},${q(proxy.uuid)},${params.join(',')}`;
+}
+function convertTrojan(proxy) {
+  const name = cleanName(proxy.name);
+  const transport = proxy.network || 'tcp';
+  const params = [];
+  if (transport !== 'tcp') params.push(`transport=${transport}`);
+  if (transport === 'ws') wsOptions(proxy, params);
+  else if (transport === 'http') httpOptions(proxy, params);
+  tlsCommon(proxy, params, true);
+  if (Array.isArray(proxy.alpn) && proxy.alpn.length) params.push(`alpn=${pv(proxy.alpn[0])}`);
+  params.push(`udp=${bool(proxy.udp, true)}`);
+  return `${name} = trojan,${proxy.server},${proxy.port},${q(proxy.password)},${params.join(',')}`;
+}
+function normalizeSha256(v) {
+  if (!v) return null;
+  const raw = str(v).replace(/^sha256[:=]/i, '').trim();
+  return raw || null;
+}
+function convertHysteria2(proxy, warnings) {
+  const name = cleanName(proxy.name);
+  const params = [];
+  if (proxy.sni) params.push(`sni=${pv(proxy.sni)}`);
+  if (proxy['skip-cert-verify'] != null) params.push(`skip-cert-verify=${bool(proxy['skip-cert-verify'])}`);
+  const fp = normalizeSha256(proxy.fingerprint);
+  if (fp) params.push(`tls-cert-sha256=${pv(fp)}`);
+  if (proxy.obfs && proxy.obfs !== 'salamander') {
+    warnings.push({ code: 'HY2_OBFS_UNSUPPORTED', node: name, detail: `Unsupported HY2 obfs: ${proxy.obfs}` });
+  }
+  if (proxy['obfs-password']) params.push(`salamander-password=${q(proxy['obfs-password'])}`);
+  if (proxy.ports) {
+    warnings.push({

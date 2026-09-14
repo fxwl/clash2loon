@@ -1,0 +1,153 @@
+
+  const remoteRules = [];
+  let finalPolicy = 'DIRECT';
+  const inlineRuleMap = new Map();
+  rules.forEach((rule, index) => {
+    if (typeof rule !== 'string') return;
+    const parts = rule.split(',');
+    const type = parts[0];
+    if (type === 'MATCH') { finalPolicy = parts[1] || finalPolicy; return; }
+    if (type === 'RULE-SET') {
+      const providerName = parts[1];
+      const policy = parts[2];
+      if (!providers[providerName]) {
+        warnings.push({ code: 'RULE_PROVIDER_MISSING', rule, detail: `Provider ${providerName} not found.` });
+        return;
+      }
+      const provider = providers[providerName];
+      const url = `${baseUrl}/rule/${encodePathSegment(providerName)}${makeQuery(token, {
+        source: provider.url, behavior: provider.behavior || 'classical', format: provider.format || ''
+      })}`;
+      remoteRules.push(`${url}, policy=${policy}, tag=${providerName}, enabled=true`);
+      return;
+    }
+    if (type === 'PROCESS-NAME') {
+      warnings.push({ code: 'PROCESS_NAME_DROPPED', rule, detail: 'Loon iOS does not document Clash PROCESS-NAME matching; omitted.' });
+      return;
+    }
+    const policy = getRulePolicy(rule);
+    const stripped = stripInlinePolicy(rule);
+    if (!policy || !stripped) {
+      warnings.push({ code: 'INLINE_RULE_UNSUPPORTED', rule, detail: 'Could not convert inline Clash rule.' });
+      return;
+    }
+    inlineRuleMap.set(String(index), stripped);
+    const url = `${baseUrl}/inline/${index}${makeQuery(token, { rule: stripped })}`;
+    remoteRules.push(`${url}, policy=${policy}, tag=inline-${index}, enabled=true`);
+  });
+
+  for (const [providerName, provider] of Object.entries(providers)) {
+    const plan = convertProviderToLoon(providerName, provider, '');
+    if (plan.mode === 'unsupported') warnings.push(...plan.warnings);
+  }
+
+  if (!groupNames.has(finalPolicy) && !BUILTIN_POLICIES.has(finalPolicy)) {
+    warnings.push({ code: 'FINAL_POLICY_NOT_FOUND', detail: `Final policy ${finalPolicy} not found; fallback to first group or DIRECT.` });
+    finalPolicy = groups.length ? cleanName(groups[0].name) : 'DIRECT';
+  }
+
+  const requestedControlPlanePolicy = cleanName(options.controlPlanePolicy || '');
+  const requestedControlPlaneDomains = Array.isArray(options.controlPlaneDomains)
+    ? options.controlPlaneDomains.map(cleanName).filter(Boolean)
+    : [];
+  const controlPlaneRules = [];
+  let controlPlanePolicy = '';
+  if (requestedControlPlanePolicy && requestedControlPlaneDomains.length) {
+    if (groupNames.has(requestedControlPlanePolicy)) {
+      controlPlanePolicy = requestedControlPlanePolicy;
+      for (const domain of [...new Set(requestedControlPlaneDomains)]) {
+        const type = domain.startsWith('=') ? 'DOMAIN' : 'DOMAIN-SUFFIX';
+        const value = domain.replace(/^=/, '');
+        if (value) controlPlaneRules.push(`${type},${value},${controlPlanePolicy}`);
+      }
+    } else {
+      warnings.push({
+        code: 'CONTROL_PLANE_POLICY_NOT_FOUND',
+        detail: `CONTROL_PLANE_POLICY=${requestedControlPlanePolicy} is not a YAML proxy group; control-plane override was disabled.`
+      });
+    }
+  }
+
+  const adjustedPowerGroups = compact.powerTuning.filter(
+    item => item.sourceInterval !== item.effectiveInterval
+  ).length;
+
+  const sections = [
+    '# Generated dynamically by Clash2Loon Cloudflare Worker v1.5 strict-native',
+    `# Upstream nodes: ${proxies.length}; groups: ${groups.length}; providers: ${Object.keys(providers).length}; rules: ${rules.length}`,
+    `# Power profile: ${power.profile}; adjusted url-test groups: ${adjustedPowerGroups}/${compact.powerTuning.length}`,
+    '# Nodes are loaded from /nodes; large Clash node lists are represented by dynamic Loon NameRegex filters.',
+    '', renderGeneral(), '',
+    '[Proxy]', '',
+    '[Remote Proxy]', `${nodeSourceAlias} = ${nodesUrl}`, '',
+    '[Remote Filter]', ...compact.filterLines, '',
+    '[Proxy Group]', ...compact.groupLines, '',
+    '[Proxy Chain]', ...chainLines, '',
+    '[Rule]', ...controlPlaneRules, `FINAL,${finalPolicy}`, '',
+    '[Remote Rule]', ...remoteRules, '',
+    '[Host]', '', '[Rewrite]', '', '[Script]', '', renderPlugins(), '',
+    '[Mitm]', 'hostname =', 'ca-p12=', 'ca-passphrase=', 'skip-server-cert-verify = false', ''
+  ];
+
+  const config = sections.join('\n');
+  const lineBytes = config.split(/\n/).map(line => new TextEncoder().encode(line).length);
+  return {
+    config,
+    nodes: nodeOnlyLines.join('\n') + '\n',
+    nodeEntries,
+    inlineRuleMap,
+    warnings,
+    stats: {
+      sourceNodes: proxies.length, convertedNodes, proxyChains: chainLines.length,
+      proxyGroups: groups.length, remoteFilters: compact.filterLines.length,
+      uniqueNodeSets: compact.uniqueNodeSets,
+      compressedNodeReferences: compact.compressedNodeReferences,
+      ruleProviders: Object.keys(providers).length, sourceRules: rules.length,
+      remoteRuleSubscriptions: remoteRules.length, warnings: warnings.length,
+      controlPlanePolicy: controlPlanePolicy || null,
+      controlPlaneRules: controlPlaneRules.length,
+      powerProfile: power.profile,
+      urlTestGroups: compact.powerTuning.length,
+      powerAdjustedGroups: adjustedPowerGroups,
+      urlTestIntervals: compact.powerTuning,
+      nodeTypes: nodeEntries.reduce((acc, n) => {
+        acc[n.subtype] = (acc[n.subtype] || 0) + 1;
+        return acc;
+      }, {}),
+      nodeSyntaxProfile: 'loon-doc-strict-v1.5',
+      configBytes: new TextEncoder().encode(config).length,
+      maxLineBytes: Math.max(0, ...lineBytes)
+    },
+    providerNames: Object.keys(providers), finalPolicy
+  };
+}
+
+export function convertProviderToLoon(providerName, provider, sourceText) {
+  const warnings = [];
+  const behavior = provider?.behavior || 'classical';
+  const url = provider?.url || '';
+  const format = provider?.format || '';
+  if (/MetaCubeX\/meta-rules-dat/i.test(url) && /\.mrs(?:$|\?)/i.test(url)) {
+    if (/\/geo\/geosite\//i.test(url)) {
+      const textUrl = url.replace(/\/geo\/geosite\/([^/?]+)\.mrs/i, '/geo/geosite/classical/$1.list');
+      return { mode: 'refetch', url: textUrl, transform: 'passthrough', warnings };
+    }
+    if (/\/geo\/geoip\//i.test(url)) {
+      const textUrl = url.replace(/\/geo\/geoip\/([^/?]+)\.mrs/i, '/geo/geoip/$1.list');
+      return { mode: 'refetch', url: textUrl, transform: 'cidr', warnings };
+    }
+  }
+  if (format === 'mrs' || /\.mrs(?:$|\?)/i.test(url)) {
+    warnings.push({ code: 'MRS_SOURCE_UNMAPPED', provider: providerName, detail: 'Binary .mrs provider has no known text sibling mapping.' });
+    return { mode: 'unsupported', warnings };
+  }
+  if (format === 'yaml' || /\.ya?ml(?:$|\?)/i.test(url)) return { mode: 'yaml', behavior, sourceText, warnings };
+  return { mode: 'text', behavior, sourceText, warnings };
+}
+
+export function normalizeRuleText(text, behavior, addNoResolve = true) {
+  const lines = String(text || '').split(/\r?\n/);
+  const out = [];
+  for (let raw of lines) {
+    raw = raw.trim();
+    if (!raw || raw.startsWith('#')) continue;
