@@ -1,5 +1,7 @@
 # Loon Usage Guide
 
+[English](LOON.md) | [简体中文](LOON.zh-CN.md)
+
 ## Importing the generated configuration
 
 After deployment, your Worker exposes:
@@ -15,6 +17,25 @@ Example placeholder:
 ```text
 https://your-worker.example.workers.dev/loon?token=YOUR_TOKEN
 ```
+
+## Recommended first-time Loon setup
+
+After the Worker has been deployed, the following sequence is recommended for a new Loon installation.
+
+1. **Import your generated Clash2Loon subscription/configuration** into Loon using the Worker `/loon?token=...` URL.
+2. Tap [Switch to Automatic Routing](https://www.nsloon.com/openloon/flowmodel=filter) to change Loon to **Automatic Routing / Filter** mode.
+3. Tap [Switch proxy mode to TUN Only](https://www.nsloon.com/openloon/proxymode=tun). Once the link opens Loon, the mode switch should be applied.
+4. Enable the **MitM**, **Script**, and **Rewrite** feature switches in Loon.
+5. Under **MitM**, enable **MitM over HTTP/2** and **QUIC fallback protection**.
+6. Make sure **Safari is the default browser**, then install the Loon CA certificate and trust it in iOS Settings.
+7. Add your subscription as required by your Loon setup.
+8. In Loon, open **Configuration** from the bottom navigation bar → tap **⋯** in the upper-right corner → enable **Always On**.
+9. Turn Loon on, then tap [Update all external resources](https://www.nsloon.com/openloon/update?sub=all) to refresh subscriptions, rules, plugins, scripts, and other external resources in one operation.
+10. After all resources finish updating, return to the Loon dashboard and toggle Loon off and back on once so the refreshed configuration is fully reloaded.
+
+> **Clash2Loon note:** when you import the complete `/loon?token=...` configuration, it already references `/nodes?token=...` through `[Remote Proxy]`. You normally do **not** need to manually add the generated `/nodes` URL again, otherwise you may end up with duplicate node sources.
+
+> **Certificate note:** installing and trusting the MitM certificate allows enabled MitM/Rewrite/Script features to inspect supported HTTPS traffic. Only enable MitM for configurations and third-party plugins you trust.
 
 ## Node subscription
 
