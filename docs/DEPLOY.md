@@ -1,5 +1,7 @@
 # Cloudflare Workers Deployment Guide
 
+[English](DEPLOY.md) | [简体中文](DEPLOY.zh-CN.md)
+
 This guide deploys Clash2Loon without storing personal configuration in GitHub.
 
 ## Prerequisites
