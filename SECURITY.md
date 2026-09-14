@@ -1,5 +1,7 @@
 # Security Policy
 
+[English](SECURITY.md) | [简体中文](SECURITY.zh-CN.md)
+
 ## Scope
 
 Clash2Loon processes network subscription data that may contain proxy credentials. Treat your deployment as sensitive infrastructure.
