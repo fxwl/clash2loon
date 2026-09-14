@@ -1,5 +1,7 @@
 # Changelog
 
+[English](CHANGELOG.md) | [简体中文](CHANGELOG.zh-CN.md)
+
 All notable public changes to Clash2Loon are documented here.
 
 This project follows a pragmatic versioning model while the converter is still evolving. Compatibility changes that may affect generated Loon configuration are called out explicitly.
@@ -34,6 +36,7 @@ This project follows a pragmatic versioning model while the converter is still e
 - Security, deployment, configuration, architecture, Loon usage, and troubleshooting documentation.
 - English default README with Simplified Chinese README.
 - Ready-to-copy AI-assisted deployment prompts in English and Simplified Chinese.
+- Complete English and Simplified Chinese project documentation set.
 
 ### Privacy and Security
 
