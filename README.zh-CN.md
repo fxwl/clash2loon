@@ -97,7 +97,7 @@ npx wrangler secret put ACCESS_TOKEN
 npm run deploy
 ```
 
-完整步骤见 [docs/DEPLOY.md](docs/DEPLOY.md)。
+完整步骤见 [中文部署指南](docs/DEPLOY.zh-CN.md)。
 
 ## 使用 AI 部署
 
@@ -142,7 +142,7 @@ https://your-worker.example.workers.dev/status?token=YOUR_TOKEN
 https://your-worker.example.workers.dev/health
 ```
 
-Loon 导入与使用建议见 [docs/LOON.md](docs/LOON.md)。
+Loon 导入、首次初始化和使用建议见 [中文 Loon 使用指南](docs/LOON.zh-CN.md)。
 
 ## Endpoints
 
@@ -184,7 +184,7 @@ Authorization: Bearer YOUR_TOKEN
 POWER_PROFILE=battery
 ```
 
-详见 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)。
+详见 [中文配置项说明](docs/CONFIGURATION.zh-CN.md)。
 
 ## 自定义插件
 
@@ -240,7 +240,7 @@ DOMAIN,exact.example.net,MyProxyGroup
 
 仓库已经通过 `.gitignore` 忽略常见本地敏感文件。
 
-详见 [SECURITY.md](SECURITY.md)。
+详见 [中文安全策略](SECURITY.zh-CN.md)。
 
 ## 测试
 
@@ -259,16 +259,16 @@ npm test -- /path/to/clash.yaml
 
 ## 文档
 
-- [部署指南](docs/DEPLOY.md)
-- [配置项说明](docs/CONFIGURATION.md)
-- [Loon 使用指南](docs/LOON.md)
-- [架构与数据流](docs/ARCHITECTURE.md)
-- [故障排查](docs/TROUBLESHOOTING.md)
+- [部署指南](docs/DEPLOY.zh-CN.md)
+- [配置项说明](docs/CONFIGURATION.zh-CN.md)
+- [Loon 使用指南](docs/LOON.zh-CN.md)
+- [架构与数据流](docs/ARCHITECTURE.zh-CN.md)
+- [故障排查](docs/TROUBLESHOOTING.zh-CN.md)
 - [AI 部署提示词](docs/AI_DEPLOYMENT_PROMPT.zh-CN.md)
-- [安全策略](SECURITY.md)
-- [贡献指南](CONTRIBUTING.md)
-- [测试说明](TEST_REPORT.md)
-- [更新日志](CHANGELOG.md)
+- [安全策略](SECURITY.zh-CN.md)
+- [贡献指南](CONTRIBUTING.zh-CN.md)
+- [测试说明](TEST_REPORT.zh-CN.md)
+- [更新日志](CHANGELOG.zh-CN.md)
 
 ## 已知限制
 
