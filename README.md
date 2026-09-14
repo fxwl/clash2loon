@@ -1,55 +1,62 @@
 # Clash2Loon Worker
 
-一个运行在 Cloudflare Workers 上的 Clash / Mihomo → Loon 动态配置转换器。
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-> Public edition: the repository contains **no real subscription URL, access token, deployment domain, proxy credential, private plugin URL, or personal Loon configuration**.
+[![CI](https://github.com/fxwl/clash2loon/actions/workflows/ci.yml/badge.svg)](https://github.com/fxwl/clash2loon/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 
-## 主要能力
+A dynamic Clash / Mihomo → Loon configuration converter designed to run on Cloudflare Workers.
 
-- 将 Clash / Mihomo YAML 转换为 Loon Remote Configuration
-- 支持 VLESS、VLESS Reality、VLESS WebSocket、Trojan、Hysteria2
-- 将 `dialer-proxy` 转为 Loon Proxy Chain
-- 保留 Clash YAML 中的节点、策略组、规则和 FINAL / MATCH 逻辑
-- 大节点列表通过 `/nodes` + Loon `NameRegex` Remote Filter 引用，避免主配置过大
-- 对完全相同的节点定义进行精确去重，并自动修复策略组引用
-- 支持 Rule Provider 代理与文本格式转换
-- 支持 `source / performance / balanced / battery` 四种测速档位
-- 支持可选的 Loon Base 合并，保留 General / Host / Rewrite / Script / Plugin / Mitm 等原生能力
-- 支持通过环境变量持久注入自定义插件，而不把插件列表写进代码仓库
-- 自动为当前 Worker 域名加入自更新所需的绕过项
-- 提供 `/status` 诊断输出与回归测试
+> The public edition contains **no real subscription URL, access token, deployment domain, proxy credential, private plugin URL, or personal Loon configuration**.
 
-## 设计原则
+## Features
 
-### Clash YAML 是业务逻辑权威来源
+- Convert Clash / Mihomo YAML into a Loon Remote Configuration.
+- Support VLESS, VLESS Reality, VLESS WebSocket, Trojan, and Hysteria2.
+- Convert `dialer-proxy` relationships into Loon Proxy Chains.
+- Preserve YAML-defined nodes, policy groups, rules, Rule Providers, and MATCH / FINAL semantics.
+- Publish large node lists through `/nodes` and reference them with Loon `NameRegex` Remote Filters.
+- Deduplicate only nodes whose effective definitions are exactly identical, then repair group references automatically.
+- Convert and proxy supported Rule Providers.
+- Provide `source`, `performance`, `balanced`, and `battery` URL-test power profiles.
+- Merge an optional Loon-native base while preserving General / Host / Rewrite / Script / Plugin / Mitm sections.
+- Persist custom Loon plugins through an environment variable instead of committing them to GitHub.
+- Add the current Worker hostname to self-bypass settings so Loon can refresh its own configuration more reliably.
+- Provide `/status` diagnostics, warnings, statistics, and a regression test suite.
 
-以下内容以 Clash / Mihomo YAML 为准：
+## Design Principles
 
-- 节点
-- 策略组
-- 代理链
-- Rule Provider
-- 规则
-- MATCH / FINAL
+### Clash / Mihomo YAML owns business routing
 
-Worker 不会擅自重新设计你的策略组。
+The upstream YAML is authoritative for:
 
-### Loon Base 只负责 Loon 原生运行时能力
+- proxies;
+- proxy groups;
+- proxy chains;
+- Rule Providers;
+- rules;
+- MATCH / FINAL.
 
-以下内容由 Loon Base 负责：
+Clash2Loon does not redesign your policy topology.
 
-- General
-- Host
-- Rewrite
-- Script
-- Plugin
-- Mitm
+### Loon Base owns Loon-native runtime features
 
-如果不设置 `LOON_BASE_URL`，会使用仓库内置的最小化中性 Base。
+The Loon base owns:
 
-## 快速开始
+- General;
+- Host;
+- Rewrite;
+- Script;
+- Plugin;
+- Mitm.
 
-### 1. Fork / Clone
+If `LOON_BASE_URL` is not configured, Clash2Loon uses the minimal neutral base included in this repository.
+
+## Quick Start
+
+### 1. Clone
 
 ```bash
 git clone https://github.com/fxwl/clash2loon.git
@@ -57,36 +64,32 @@ cd clash2loon
 npm install
 ```
 
-### 2. 准备 Cloudflare Worker Secrets
+### 2. Configure required Cloudflare Worker secrets
 
-必须配置：
+Required:
 
 ```text
 CLASH_URL
 ACCESS_TOKEN
 ```
 
-其中：
+Where:
 
-- `CLASH_URL`：完整 Clash / Mihomo YAML 订阅地址
-- `ACCESS_TOKEN`：保护 Worker 输出接口的随机长 token
+- `CLASH_URL` is the full URL of your Clash / Mihomo YAML subscription.
+- `ACCESS_TOKEN` is a long random token protecting generated endpoints.
 
-可选变量见：
+Optional variables are documented in `.dev.vars.example`.
 
-```text
-.dev.vars.example
-```
-
-### 3. 本地开发
+### 3. Local development
 
 ```bash
 cp .dev.vars.example .dev.vars
 npm run dev
 ```
 
-`.dev.vars` 已被 `.gitignore` 忽略，不要提交真实值。
+`.dev.vars` is ignored by Git. Never commit real values.
 
-### 4. 部署到 Cloudflare Workers
+### 4. Deploy to Cloudflare Workers
 
 ```bash
 npx wrangler secret put CLASH_URL
@@ -94,95 +97,106 @@ npx wrangler secret put ACCESS_TOKEN
 npm run deploy
 ```
 
-详细步骤见：[`docs/DEPLOY.md`](docs/DEPLOY.md)
+See the complete guide in [docs/DEPLOY.md](docs/DEPLOY.md).
 
-## Loon 使用
+## Deploy with AI
 
-部署后，假设 Worker 地址是：
+You can ask an AI coding agent or assistant to walk you through the entire deployment while keeping secrets out of Git.
+
+Use the ready-to-copy prompt:
+
+- [AI deployment prompt — English](docs/AI_DEPLOYMENT_PROMPT.md)
+- [AI 部署提示词 — 简体中文](docs/AI_DEPLOYMENT_PROMPT.zh-CN.md)
+
+The prompt instructs the AI to verify prerequisites, configure Cloudflare safely, deploy the Worker, validate `/health` and `/status`, and produce the final Loon URL without committing your private subscription or tokens.
+
+## Loon URLs
+
+Assume your deployed Worker is:
 
 ```text
 https://your-worker.example.workers.dev
 ```
 
-完整配置：
+Complete Loon configuration:
 
 ```text
 https://your-worker.example.workers.dev/loon?token=YOUR_TOKEN
 ```
 
-节点订阅：
+Node subscription:
 
 ```text
 https://your-worker.example.workers.dev/nodes?token=YOUR_TOKEN
 ```
 
-状态诊断：
+Diagnostics:
 
 ```text
 https://your-worker.example.workers.dev/status?token=YOUR_TOKEN
 ```
 
-健康检查：
+Health check:
 
 ```text
 https://your-worker.example.workers.dev/health
 ```
 
-Loon 导入与使用建议见：[`docs/LOON.md`](docs/LOON.md)
+See [docs/LOON.md](docs/LOON.md) for import and operating guidance.
 
 ## Endpoints
 
-| Endpoint | 说明 | 鉴权 |
+| Endpoint | Purpose | Authentication |
 | --- | --- | --- |
-| `/health` | Worker 健康检查 | 否 |
-| `/loon` | 完整 Loon 配置 | 是 |
-| `/nodes` | Loon 节点订阅 | 是 |
-| `/status` | 转换状态、warnings、统计 | 是 |
-| `/rule/:name` | Rule Provider 转换结果 | 是 |
-| `/inline/:index` | 内联规则远程化 | 是 |
+| `/health` | Worker health check | No |
+| `/loon` | Complete Loon configuration | Yes |
+| `/nodes` | Converted Loon node subscription | Yes |
+| `/status` | Conversion statistics and warnings | Yes |
+| `/rule/:name` | Converted Rule Provider | Yes |
+| `/inline/:index` | Remote form of an inline rule | Yes |
 
-鉴权支持：
+Authentication can be supplied using:
 
 ```text
 ?token=YOUR_TOKEN
 ```
 
-或：
+or:
 
 ```http
 Authorization: Bearer YOUR_TOKEN
 ```
 
-## Power Profile
+## Power Profiles
 
-`POWER_PROFILE` 只改变 Loon `url-test` 的后台测速间隔，不改变 YAML 的节点归属和分流逻辑。
+`POWER_PROFILE` changes only the background `url-test` interval. It does not change which nodes belong to a group or how your YAML routes traffic.
 
-| 档位 | 说明 |
+| Profile | Behavior |
 | --- | --- |
-| `source` | 使用 YAML 原始 interval |
-| `performance` | 更频繁测速 |
-| `balanced` | 平衡延迟与功耗 |
-| `battery` | 最省电，默认推荐 |
+| `source` | Keep YAML intervals |
+| `performance` | More frequent health checks |
+| `balanced` | Moderate background checks |
+| `battery` | Long intervals for lower battery use; recommended default |
 
-当前公开默认值：
+Public default:
 
 ```text
 POWER_PROFILE=battery
 ```
 
-具体策略见：[`docs/CONFIGURATION.md`](docs/CONFIGURATION.md)
+See [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
-## 自定义插件
+## Managed Plugins
 
-公开版**默认不内置任何插件清单**。
+The public edition ships with **no built-in plugin catalog**.
 
-如果希望 Worker 每次生成配置时自动注入自己的 Loon 插件，请设置：
+To inject your own persistent Loon plugin list, configure:
 
 ```text
 MANAGED_PLUGINS_JSON
 ```
 
-示例：
+Example:
 
 ```json
 [
@@ -191,80 +205,82 @@ MANAGED_PLUGINS_JSON
 ]
 ```
 
-推荐把它设置为 Cloudflare Secret，而不是写进 GitHub。
+Prefer storing this as a Cloudflare Secret rather than committing it to GitHub.
 
-## Control-plane 资源策略
+## Control-plane Resource Routing
 
-某些插件源、规则源或资源站可能在 Loon 开启时需要指定代理策略。公开版不会内置任何域名。
+Some plugin, rule, or resource hosts may need a specific proxy policy while Loon is enabled. The public edition does not hard-code any such domain.
 
-可选配置：
+Optional configuration:
 
 ```text
 CONTROL_PLANE_POLICY=MyProxyGroup
 CONTROL_PLANE_DOMAINS=resources.example.com,=exact.example.net
 ```
 
-规则会插入到 FINAL 前：
+Generated rules are inserted before FINAL:
 
 ```text
 DOMAIN-SUFFIX,resources.example.com,MyProxyGroup
 DOMAIN,exact.example.net,MyProxyGroup
 ```
 
-策略组必须真实存在于你的上游 YAML。
+`CONTROL_PLANE_POLICY` must match a real group in your upstream YAML.
 
-## 安全与隐私
+## Security and Privacy
 
-不要提交：
+Never commit:
 
-- Clash / Mihomo 真实订阅 URL
-- Proxy UUID / password / Reality key 等真实凭据
-- Worker `ACCESS_TOKEN`
-- 自定义域名中包含的私人信息
-- 私人插件 token
-- 生成后的 `/nodes` 或 `.lcf`
+- real Clash / Mihomo subscription URLs;
+- proxy UUIDs, passwords, Reality keys, or other credentials;
+- Worker `ACCESS_TOKEN` values;
+- private plugin tokens;
+- generated `/nodes` output or `.lcf` files;
+- private deployment metadata you do not want to publish.
 
-仓库已经忽略常见本地敏感文件。
+Common local sensitive files are ignored by `.gitignore`.
 
-完整安全说明见：[`SECURITY.md`](SECURITY.md)
+See [SECURITY.md](SECURITY.md).
 
-## 测试
+## Testing
 
 ```bash
 npm install
 npm run test:regression
 ```
 
-使用自己的测试 YAML：
+To test your own YAML locally:
 
 ```bash
 npm test -- /path/to/clash.yaml
 ```
 
-注意：不要把真实测试 YAML 提交到仓库。
+Do not commit your real test YAML.
 
-## 文档
+## Documentation
 
-- [部署指南](docs/DEPLOY.md)
-- [配置项说明](docs/CONFIGURATION.md)
-- [Loon 使用指南](docs/LOON.md)
-- [架构与数据流](docs/ARCHITECTURE.md)
-- [故障排查](docs/TROUBLESHOOTING.md)
-- [安全策略](SECURITY.md)
-- [贡献指南](CONTRIBUTING.md)
-- [测试说明](TEST_REPORT.md)
+- [Deployment guide](docs/DEPLOY.md)
+- [Configuration reference](docs/CONFIGURATION.md)
+- [Loon usage guide](docs/LOON.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [AI deployment prompt](docs/AI_DEPLOYMENT_PROMPT.md)
+- [Security policy](SECURITY.md)
+- [Contributing](CONTRIBUTING.md)
+- [Validation notes](TEST_REPORT.md)
+- [Changelog](CHANGELOG.md)
 
-## 已知限制
+## Known Limitations
 
-- 不会尝试支持所有 Clash 协议；当前重点是 VLESS / Trojan / Hysteria2
-- Mihomo 部分专有参数在 Loon 没有一一对应能力，会被省略并产生 warning
-- `PROCESS-NAME` 等仅桌面环境适用的规则不会强行映射到 iOS
-- Binary `.mrs` Rule Provider 只有在能推导文本 sibling 时才能转换
-- Loon 与 Mihomo 的语义不是完全等价，建议先通过 `/status` 检查 warnings
+- The converter intentionally does not attempt to support every Clash protocol. The current focus is VLESS, Trojan, and Hysteria2.
+- Some Mihomo-specific fields have no one-to-one Loon equivalent and are omitted with warnings.
+- Desktop-only rules such as `PROCESS-NAME` are not force-mapped to iOS.
+- Binary `.mrs` Rule Providers can only be converted when a known text sibling can be derived.
+- Loon and Mihomo semantics are not perfectly equivalent; review `/status` warnings after changing upstream configuration.
 
 ## License
 
-MIT License. See [`LICENSE`](LICENSE).
+MIT License. See [LICENSE](LICENSE).
 
 ## Disclaimer
 
