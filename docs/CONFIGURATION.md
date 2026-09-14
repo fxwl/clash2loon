@@ -1,5 +1,7 @@
 # Configuration Reference
 
+[English](CONFIGURATION.md) | [简体中文](CONFIGURATION.zh-CN.md)
+
 ## Required Worker Secrets
 
 ### `CLASH_URL`
