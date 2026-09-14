@@ -1,0 +1,26 @@
+# Required: upstream Clash/Mihomo full YAML URL
+CLASH_URL="https://example.com/subscription.yaml"
+
+# Required: protects /loon, /nodes, /status, /rule/* and /inline/*
+ACCESS_TOKEN="replace-with-a-long-random-token"
+
+# Optional: remote Loon base template. Leave empty to use the neutral embedded base.
+LOON_BASE_URL=""
+
+# Optional: JSON array of persistent Loon plugin lines.
+# Example:
+# MANAGED_PLUGINS_JSON='["https://example.com/plugin.lpx, enabled=true"]'
+MANAGED_PLUGINS_JSON=""
+
+# Optional: proxy group used for control-plane resource domains.
+# The group must exist in your upstream YAML.
+CONTROL_PLANE_POLICY=""
+
+# Optional: comma-separated domains that should use CONTROL_PLANE_POLICY.
+# Example: raw.githubusercontent.com,example-resource-host.invalid
+CONTROL_PLANE_DOMAINS=""
+
+# Optional runtime tuning
+POWER_PROFILE="battery"
+CACHE_TTL="300"
+RULE_CACHE_TTL="3600"

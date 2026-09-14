@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Materialize and run regression suite
+        run: npm run test:regression
+
+      - name: Verify sensitive local files are not tracked
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E '(^|/)(\.dev\.vars|\.env(\..*)?|test-input\.json)$|(^|/)(nodes-v.*\.txt|config-v.*\.lcf|generated-.*\.lcf|generated-nodes.*\.txt)$'; then
+            echo 'A local or generated sensitive file is tracked.' >&2
+            exit 1
+          fi
+          echo 'Sensitive-file tracking check passed.'

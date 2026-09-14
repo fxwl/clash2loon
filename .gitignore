@@ -1,0 +1,25 @@
+node_modules/
+.wrangler/
+.dev.vars
+.env
+.env.*
+*.log
+
+# Local/private working data
+/local/
+/private/
+/fixtures/private/
+*.private.yaml
+*.private.yml
+*.private.json
+
+# Generated at install/deploy time from source-parts/.
+/src/converter.js
+/src/index.js
+
+# Local diagnostics may contain real proxy credentials. Never commit them.
+/test-input.json
+/nodes-v*.txt
+/config-v*.lcf
+/generated-*.lcf
+/generated-nodes*.txt
