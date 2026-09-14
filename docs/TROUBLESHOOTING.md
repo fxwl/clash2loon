@@ -1,5 +1,7 @@
 # Troubleshooting
 
+[English](TROUBLESHOOTING.md) | [简体中文](TROUBLESHOOTING.zh-CN.md)
+
 This guide focuses on separating Worker, upstream-subscription and Loon-client problems quickly.
 
 ## 1. Start with `/health`
