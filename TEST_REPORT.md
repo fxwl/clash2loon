@@ -1,5 +1,7 @@
 # Validation Notes
 
+[English](TEST_REPORT.md) | [简体中文](TEST_REPORT.zh-CN.md)
+
 This document describes the public regression scope. It intentionally contains no real subscription URLs, node credentials, deployment domains, account identifiers, or production data.
 
 ## Covered conversion behavior
