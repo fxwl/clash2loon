@@ -1,5 +1,7 @@
 # Architecture
 
+[English](ARCHITECTURE.md) | [简体中文](ARCHITECTURE.zh-CN.md)
+
 ## High-level flow
 
 ```text
