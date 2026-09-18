@@ -70,6 +70,12 @@ if (!out.config.includes('policy=Final')) {
 }
 if (out.stats.nativePolicyRemaps < 1) throw new Error('Expected native policy remap warnings.');
 
+for (const emptyYamlSection of ['[Remote Proxy]', '[Remote Filter]']) {
+  if (out.config.includes(emptyYamlSection)) {
+    throw new Error(`Empty YAML-owned section must be omitted: ${emptyYamlSection}`);
+  }
+}
+
 console.log(JSON.stringify({
   ok: true,
   preamblePreserved: true,

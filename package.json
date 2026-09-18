@@ -1,6 +1,6 @@
 {
   "name": "clash2loon-worker",
-  "version": "1.5.21",
+  "version": "1.5.22",
   "description": "Convert Clash/Mihomo YAML subscriptions into Loon remote configurations on Cloudflare Workers.",
   "type": "module",
   "license": "MIT",
