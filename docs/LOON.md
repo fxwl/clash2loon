@@ -39,27 +39,22 @@ After the Worker has been deployed, the following sequence is recommended for a 
 
 ## Node subscription
 
-The main config references:
+`/nodes?token=YOUR_TOKEN` remains available as a standalone node feed for diagnostics, protocol isolation, or other consumers.
 
-```text
-/nodes?token=YOUR_TOKEN
-```
+When using `/loon` as the complete remote configuration, you normally do not need to add `/nodes` separately. v1.5.21 emits successfully converted nodes directly into `[Proxy]` and does not require `[Remote Proxy]`.
 
-through `[Remote Proxy]`.
+## Why nodes are inline in the main config
 
-You normally do not need to add `/nodes` manually when using `/loon` as the complete remote config.
+Keeping nodes inline avoids runtime dependence on a second node subscription and makes static or dynamically expanded groups deterministic.
 
-## Why nodes are separated from the main config
+To prevent very large `[Proxy Group]` lines, Clash2Loon uses hybrid compilation:
 
-Large Clash subscriptions can produce very large Loon `[Proxy]` sections and very long policy-group lines.
+1. small and medium groups list concrete node names directly;
+2. oversized, order-safe node runs can use exact local `NameRegex` filters;
+3. identical node sets reuse the same filters;
+4. custom or reversed ordering stays inline.
 
-Clash2Loon instead:
-
-1. publishes nodes at `/nodes`;
-2. creates Loon `NameRegex` filters;
-3. points YAML-derived policy groups at those filters.
-
-This reduces duplication and makes large subscriptions more manageable.
+If you need a compatibility baseline, append `&compact=off` to `/loon` to force all policy-group members inline.
 
 ## Updating resources
 
