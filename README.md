@@ -7,6 +7,14 @@
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 
+## Inspiration & Thanks
+
+Clash2Loon was originally inspired by [Kelee's Loon guides and ProxyResource](https://github.com/luestr/ProxyResource) during my own long-term use of Loon. I also continue to use resources maintained there.
+
+Special thanks to Kelee for the long-term work in organizing, maintaining, and sharing Loon configurations, plugins, and related resources.
+
+If you are looking for **Loon plugins**, visit [ProxyResource](https://github.com/luestr/ProxyResource).
+
 A dynamic Clash / Mihomo → Loon configuration converter designed to run on Cloudflare Workers.
 
 > The public edition contains **no real subscription URL, access token, deployment domain, proxy credential, private plugin URL, or personal Loon configuration**.
