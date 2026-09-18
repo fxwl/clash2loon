@@ -14,6 +14,14 @@ This project follows a pragmatic versioning model while the converter is still e
 - Improve documentation for additional Loon-native base configurations.
 - Continue conservative protocol support without guessing undocumented Loon behavior.
 
+## [1.5.22] - 2026-09-18
+
+### Fixed
+
+- Stop emitting YAML-owned Loon sections when they contain no real content.
+- In particular, omit empty `[Remote Proxy]` and `[Remote Filter]` placeholders so Loon does not expose a misleading linked-node category in the v1.5.21 inline-node architecture.
+- Add regression coverage to ensure empty remote node/filter sections stay absent from the final configuration.
+
 ## [1.5.21] - 2026-09-18
 
 ### Added
