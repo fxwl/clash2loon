@@ -14,6 +14,31 @@ This project follows a pragmatic versioning model while the converter is still e
 - Improve documentation for additional Loon-native base configurations.
 - Continue conservative protocol support without guessing undocumented Loon behavior.
 
+## [1.5.21] - 2026-09-18
+
+### Added
+
+- Mihomo dynamic policy-group expansion for `include-all` / `include-all-proxies`, `filter`, and `exclude-filter`.
+- Per-group diagnostics in `/status`: source/resolved/emitted member counts, line byte length, unresolved members, compaction mode, compressed-node count, and filter-reference count.
+- Per-request `compact=off` compatibility fallback for `/loon` and `/status`.
+- Regression coverage for 33-node inline groups, 192-node large groups, custom/reversed ordering, dynamic groups, and the all-inline fallback.
+
+### Changed
+
+- Successfully converted nodes are now emitted directly into Loon `[Proxy]`; the main `/loon` configuration no longer depends on `[Remote Proxy]`.
+- Small and medium groups remain fully inline.
+- Oversized, order-safe node runs use exact local `NameRegex` filters only when compaction is needed.
+- Large-group compaction starts at 64 concrete nodes or 2048 inline member bytes; eligible runs require at least 16 nodes or 512 bytes.
+- Identical node sets reuse generated filters.
+- Custom or reversed node ordering remains inline to preserve YAML ordering semantics.
+- Dynamic groups expand only from successfully converted nodes and valid chains, preventing unsupported proxy definitions from re-entering policy groups.
+- `/nodes` remains available as an independent node feed and diagnostic endpoint.
+
+### Compatibility
+
+- Existing public environment-driven features such as `MANAGED_PLUGINS_JSON`, `CONTROL_PLANE_POLICY`, and `CONTROL_PLANE_DOMAINS` remain unchanged.
+- No production subscription URL, access token, private deployment domain, or private plugin configuration is included in this release.
+
 ## [1.5.16] - 2026-09-14
 
 ### Added
