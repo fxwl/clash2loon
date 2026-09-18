@@ -216,7 +216,11 @@ export function mergeLoonConfigs(baseText, generatedText, options = {}) {
       }
     }
 
-    if (lines.length || firstSection(base, sectionName) || firstSection(generated, sectionName) || (key === 'plugin' && managedPluginLines)) {
+    const shouldEmitSection = yamlOwned.has(key)
+      ? nonCommentContent(lines).length > 0
+      : (lines.length || firstSection(base, sectionName) || firstSection(generated, sectionName) || (key === 'plugin' && managedPluginLines));
+
+    if (shouldEmitSection) {
       output.push(renderSection(sectionName, lines));
     }
   }
