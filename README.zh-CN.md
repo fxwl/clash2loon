@@ -7,6 +7,14 @@
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 
+## 致谢与灵感来源
+
+Clash2Loon 最初是在我长期使用 Loon 的过程中，受到 [可莉的 Loon 指南与 ProxyResource](https://github.com/luestr/ProxyResource) 启发而开发的。我自己也一直在使用其中整理的 Loon 相关资源。
+
+感谢可莉长期以来对 Loon 配置、插件及相关资源的整理、维护与分享。
+
+如果你有 **Loon 插件**方面的需求，可以前往 [ProxyResource](https://github.com/luestr/ProxyResource) 查看。
+
 一个运行在 Cloudflare Workers 上的 Clash / Mihomo → Loon 动态配置转换器。
 
 > 公开版仓库中**不包含真实订阅地址、访问 Token、部署域名、代理凭据、私人插件地址或个人 Loon 配置**。
