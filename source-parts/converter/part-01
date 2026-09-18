@@ -119,6 +119,77 @@ function effectiveUrlTestInterval(group, profile) {
   };
 }
 
+function compileGroupPattern(pattern, groupName, field, warnings) {
+  const raw = Array.isArray(pattern)
+    ? pattern.map(value => str(value).trim()).filter(Boolean).map(value => `(?:${value})`).join('|')
+    : str(pattern).trim();
+  if (!raw) return { regex: null, valid: true, source: '' };
+
+  let source = raw;
+  let flags = '';
+  if (source.includes('(?i)') || source.includes('(?i:')) {
+    source = source.replace(/\(\?i\)/g, '').replace(/\(\?i:/g, '(?:');
+    flags = 'i';
+  }
+
+  try {
+    return { regex: new RegExp(source, flags), valid: true, source: raw };
+  } catch (error) {
+    warnings.push({
+      code: 'GROUP_FILTER_INVALID',
+      group: groupName,
+      field,
+      detail: `Invalid Mihomo ${field} regex: ${raw}; dynamic node expansion was skipped for this group. ${error?.message || error}`
+    });
+    return { regex: null, valid: false, source: raw };
+  }
+}
+
+function resolveGroupMembers(group, regularNodeNames, chainNames, warnings) {
+  const explicit = Array.isArray(group?.proxies)
+    ? group.proxies.map(cleanName).filter(Boolean)
+    : [];
+  const includeAll = Boolean(group?.['include-all']) || Boolean(group?.['include-all-proxies']);
+  if (!includeAll) {
+    return { members: explicit, includeAll: false, autoAdded: 0, filter: '', excludeFilter: '' };
+  }
+
+  const groupName = cleanName(group?.name);
+  const include = compileGroupPattern(group?.filter, groupName, 'filter', warnings);
+  const exclude = compileGroupPattern(group?.['exclude-filter'], groupName, 'exclude-filter', warnings);
+  if (!include.valid || !exclude.valid) {
+    return {
+      members: explicit,
+      includeAll: true,
+      autoAdded: 0,
+      filter: include.source,
+      excludeFilter: exclude.source
+    };
+  }
+
+  const members = [...explicit];
+  const seen = new Set(members);
+  const candidates = [...regularNodeNames, ...chainNames];
+  let autoAdded = 0;
+
+  for (const name of candidates) {
+    if (!name || seen.has(name)) continue;
+    if (include.regex && !include.regex.test(name)) continue;
+    if (exclude.regex && exclude.regex.test(name)) continue;
+    seen.add(name);
+    members.push(name);
+    autoAdded++;
+  }
+
+  return {
+    members,
+    includeAll: true,
+    autoAdded,
+    filter: include.source,
+    excludeFilter: exclude.source
+  };
+}
+
 function createCompactGroups(groups, regularNodeNames, chainNames, sourceAlias, warnings, powerProfile = 'balanced') {
   const regularNodes = new Set(regularNodeNames);
   const chains = new Set(chainNames);
@@ -126,6 +197,7 @@ function createCompactGroups(groups, regularNodeNames, chainNames, sourceAlias, 
   const filterCache = new Map();
   const filterLines = [];
   const powerTuning = [];
+  const dynamicGroupExpansions = [];
   let compressedNodeReferences = 0;
 
   function filtersFor(nodeMembers) {
