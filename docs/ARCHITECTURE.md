@@ -142,11 +142,20 @@ is not a duplicate.
 
 Only completely identical effective proxy definitions are collapsed.
 
-## Policy group compaction
+## Inline nodes and hybrid policy-group compilation
 
-Concrete nodes in a group are represented by generated exact-name `NameRegex` filters.
+Every successfully converted node is emitted directly into Loon `[Proxy]`. The main `/loon` configuration therefore does not depend on a `[Remote Proxy]` node subscription.
 
-Contiguous node runs are compacted independently, preserving the relative position of named groups and built-in policies such as DIRECT or REJECT.
+Policy groups are compiled conservatively:
+
+1. Dynamic Mihomo membership (`include-all` / `include-all-proxies`, `filter`, `exclude-filter`) is resolved against successfully converted nodes and valid proxy chains.
+2. Small and medium groups keep concrete node names inline.
+3. A group becomes eligible for compaction at 64 concrete nodes or 2048 bytes of inline member text.
+4. Eligible contiguous node runs are compacted only when their order is compatible with global node order; each run must contain at least 16 nodes or 512 bytes.
+5. Exact local `NameRegex` filters are chunked and cached so repeated node sets reuse the same generated filter set.
+6. Custom or reversed node order falls back to inline membership instead of silently changing YAML semantics.
+
+`/nodes` remains available for diagnostics, protocol isolation, and consumers that want a standalone node feed, but it is not required by `/loon`.
 
 ## Power tuning
 

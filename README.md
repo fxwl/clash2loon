@@ -17,7 +17,9 @@ A dynamic Clash / Mihomo → Loon configuration converter designed to run on Clo
 - Support VLESS, VLESS Reality, VLESS WebSocket, Trojan, and Hysteria2.
 - Convert `dialer-proxy` relationships into Loon Proxy Chains.
 - Preserve YAML-defined nodes, policy groups, rules, Rule Providers, and MATCH / FINAL semantics.
-- Publish large node lists through `/nodes` and reference them with Loon `NameRegex` Remote Filters.
+- Keep successfully converted nodes inline in Loon `[Proxy]`; small and medium groups stay inline, while oversized order-safe node runs are compacted through exact local `NameRegex` filters.
+- Expand Mihomo dynamic groups using `include-all` / `include-all-proxies`, `filter`, and `exclude-filter` over successfully converted nodes.
+- Provide per-group `/status` diagnostics plus a `?compact=off` compatibility fallback.
 - Deduplicate only nodes whose effective definitions are exactly identical, then repair group references automatically.
 - Convert and proxy supported Rule Providers.
 - Provide `source`, `performance`, `balanced`, and `battery` URL-test power profiles.
@@ -166,6 +168,25 @@ or:
 ```http
 Authorization: Bearer YOUR_TOKEN
 ```
+
+## Hybrid Group Compilation
+
+v1.5.21 uses a hybrid compiler for policy-group membership:
+
+- successfully converted nodes are emitted directly into `[Proxy]`;
+- groups with fewer than 64 concrete nodes and shorter than 2048 member bytes stay fully inline;
+- oversized, order-safe node runs are replaced with exact local `NameRegex` filter references;
+- repeated node sets reuse the same generated filters;
+- custom or reversed node ordering stays inline instead of being reordered;
+- `/nodes` remains available for diagnostics and isolated node feeds, but `/loon` no longer depends on a `[Remote Proxy]` subscription.
+
+For compatibility testing, disable group compaction per request:
+
+```text
+https://YOUR-WORKER/loon?token=YOUR_TOKEN&compact=off
+```
+
+The same parameter can be used with `/status` to inspect the all-inline fallback.
 
 ## Power Profiles
 

@@ -174,11 +174,34 @@ If two nodes share an IP but differ in UUID, password, UDP behavior, SNI, transp
 
 Group references to a removed duplicate are remapped to the first retained node.
 
-## Remote node filters
+## Inline nodes and hybrid group compaction
 
-Node definitions live in `/nodes` rather than being duplicated into the main config.
+Successfully converted nodes are emitted directly in `[Proxy]`.
 
-Proxy groups reference exact-name `NameRegex` filters. Large node sets are chunked to keep generated lines within practical limits.
+Small and medium proxy groups reference those node names directly. Oversized, order-safe node runs may be represented by exact local `NameRegex` filters to prevent very long `[Proxy Group]` lines.
+
+Default thresholds:
+
+- group eligibility: at least 64 concrete nodes or 2048 inline member bytes;
+- run eligibility: at least 16 nodes or 512 bytes;
+- custom/reversed ordering: remains inline.
+
+Generated filters are exact-name filters and identical node sets are reused. No `[Remote Proxy]` source is required.
+
+The `/nodes` endpoint is still available as a standalone node feed and diagnostic surface.
+
+## Runtime query parameter: `compact`
+
+Group compaction is enabled by default. To temporarily force all policy-group members inline, use any false value:
+
+```text
+/loon?token=YOUR_TOKEN&compact=off
+/status?token=YOUR_TOKEN&compact=off
+```
+
+Accepted false values are `0`, `false`, `off`, and `no`.
+
+This is a per-request compatibility switch, not a Worker environment variable.
 
 ## Rule Provider conversion
 

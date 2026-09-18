@@ -17,7 +17,9 @@
 - 支持 VLESS、VLESS Reality、VLESS WebSocket、Trojan、Hysteria2。
 - 将 `dialer-proxy` 转换为 Loon Proxy Chain。
 - 保留 YAML 中定义的节点、策略组、规则、Rule Provider 和 MATCH / FINAL 逻辑。
-- 大规模节点通过 `/nodes` 发布，并使用 Loon `NameRegex` Remote Filter 引用，减少主配置体积。
+- 成功转换的节点直接写入 Loon `[Proxy]`；小型和中型策略组继续直接引用真实节点，超大型且顺序安全的节点段才使用精确本地 `NameRegex` Filter 压缩。
+- 支持 Mihomo 动态策略组：`include-all` / `include-all-proxies`、`filter`、`exclude-filter`，且只会从成功转换的节点中展开。
+- `/status` 提供组级诊断，并支持 `?compact=off` 一键切回全 Inline 兼容模式。
 - 仅对有效配置完全一致的节点进行精确去重，并自动修复策略组引用。
 - 转换并代理支持的 Rule Provider。
 - 提供 `source / performance / balanced / battery` 四种测速功耗档位。
@@ -166,6 +168,25 @@ Loon 导入、首次初始化和使用建议见 [中文 Loon 使用指南](docs/
 ```http
 Authorization: Bearer YOUR_TOKEN
 ```
+
+## 混合策略组编译
+
+v1.5.21 对策略组成员采用混合编译：
+
+- 所有成功转换的节点直接写入 `[Proxy]`；
+- 实体节点少于 64 个且成员文本低于 2048 bytes 的策略组保持全 Inline；
+- 只有超大型、且节点顺序与全局节点顺序一致的连续节点段才会转换为精确本地 `NameRegex` Filter；
+- 相同节点集合会复用同一组 Filter；
+- 自定义排序、倒序等无法安全保持顺序的策略组自动回退为 Inline；
+- `/nodes` 仍保留用于诊断和独立节点订阅，但 `/loon` 不再依赖 `[Remote Proxy]`。
+
+如需兼容性排查，可以按请求关闭策略组压缩：
+
+```text
+https://YOUR-WORKER/loon?token=YOUR_TOKEN&compact=off
+```
+
+`/status` 也可以带相同参数查看全 Inline 回退模式。
 
 ## 省电测速档位
 

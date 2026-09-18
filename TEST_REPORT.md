@@ -11,9 +11,14 @@ This document describes the public regression scope. It intentionally contains n
 - Hysteria2
 - `dialer-proxy` to Loon proxy chains
 - Clash/Mihomo proxy groups to Loon policy groups
+- Mihomo dynamic group expansion via `include-all` / `include-all-proxies`, `filter`, and `exclude-filter`
+- Inline `[Proxy]` node delivery in the complete `/loon` config
+- Hybrid large-group compaction using exact local `NameRegex` filters
+- Order-safety fallback for custom/reversed group membership
+- `compact=off` all-inline compatibility mode
+- Per-group compaction and line-size diagnostics
+- Stable standalone `/nodes` output
 - Rule Provider conversion and Worker-hosted remote rules
-- Exact-name `NameRegex` filters for large node sets
-- Stable `/nodes` remote subscription output
 - Exact node-definition deduplication
 - Configurable power profiles for `url-test` groups
 - Loon-native section preservation and stale policy remapping
@@ -32,14 +37,17 @@ npm run test:regression
 
 The regression suite checks:
 
-- base/Clash ownership rules
-- remote filter syntax and ordering
-- select-group ordering
-- node deduplication
-- battery/balanced/source interval behavior
-- managed plugin injection
-- cache/config wiring
-- Apple system-service compatibility guards
+- base/Clash ownership rules;
+- small inline groups and exact YAML member ordering;
+- 192-node hybrid compaction and filter reuse;
+- custom/reversed-order inline fallback;
+- `compact=off` all-inline fallback;
+- Mihomo dynamic group expansion and exclusion of unsupported nodes;
+- node deduplication;
+- battery/balanced/source interval behavior;
+- managed plugin injection;
+- cache/config wiring;
+- Apple system-service compatibility guards.
 
 ## Test data policy
 

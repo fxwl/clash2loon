@@ -1,4 +1,13 @@
-    const raw = Array.isArray(group.proxies) ? group.proxies.map(cleanName).filter(Boolean) : [];
+    const resolvedMembers = resolveGroupMembers(group, regularNodeNames, chainNames, warnings);
+    const raw = resolvedMembers.members;
+    if (resolvedMembers.includeAll) {
+      dynamicGroupExpansions.push({
+        group: name,
+        added: resolvedMembers.autoAdded,
+        filter: resolvedMembers.filter,
+        excludeFilter: resolvedMembers.excludeFilter
+      });
+    }
     const nodeMembers = raw.filter(m => regularNodes.has(m));
     const nodeSet = new Set(nodeMembers);
     const filterNames = filtersFor(nodeMembers);
@@ -58,7 +67,8 @@
     filterLines,
     compressedNodeReferences,
     uniqueNodeSets: filterCache.size,
-    powerTuning
+    powerTuning,
+    dynamicGroupExpansions
   };
 }
 
@@ -89,18 +99,21 @@ export function convertClashToLoon(clash, options = {}) {
     const originalName = cleanName(proxy.name);
     if (!originalName) continue;
     const clone = { ...proxy };
+    let pendingDialerTarget = null;
     if (clone['dialer-proxy']) {
       const landingName = uniqueName(`${originalName} · 落地`, usedNames);
       clone.name = landingName;
-      dialerTargets.set(originalName, {
+      pendingDialerTarget = {
         chainName: originalName, landingName,
         via: cleanName(clone['dialer-proxy']), udp: bool(clone.udp, true)
-      });
-    } else {
-      regularNodeNames.push(originalName);
+      };
     }
+
     const line = convertProxyLine(clone, warnings);
     if (line) {
+      if (pendingDialerTarget) dialerTargets.set(originalName, pendingDialerTarget);
+      else regularNodeNames.push(originalName);
+
       nodeOnlyLines.push(line);
       const kind = str(proxy.type).toLowerCase();
       const subtype = kind === 'vless'
@@ -121,12 +134,14 @@ export function convertClashToLoon(clash, options = {}) {
 
   const groupNames = new Set(groups.map(g => cleanName(g.name)).filter(Boolean));
   const chainLines = [];
+  const validChainNames = [];
   for (const d of dialerTargets.values()) {
     if (!groupNames.has(d.via) && !BUILTIN_POLICIES.has(d.via)) {
       warnings.push({ code: 'DIALER_POLICY_NOT_FOUND', node: d.chainName, detail: `dialer-proxy target ${d.via} was not found; chain omitted.` });
       continue;
     }
     chainLines.push(`${d.chainName} = ${d.via},${d.landingName},udp=${d.udp}`);
+    validChainNames.push(d.chainName);
   }
 
   const nodeSourceAlias = '__C2L_Nodes';
@@ -134,7 +149,7 @@ export function convertClashToLoon(clash, options = {}) {
   const compact = createCompactGroups(
     groups,
     regularNodeNames,
-    [...dialerTargets.keys()],
+    validChainNames,
     nodeSourceAlias,
     warnings,
     power.profile

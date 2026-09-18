@@ -23,32 +23,10 @@ const proxies = names.map((name, index) => ({
 const clash = {
   proxies,
   'proxy-groups': [
-    {
-      name: 'Main Proxy',
-      type: 'select',
-      proxies: ['Auto', 'Low Rate', 'Budget', ...names]
-    },
-    {
-      name: 'Auto',
-      type: 'url-test',
-      proxies: names,
-      url: 'https://www.gstatic.com/generate_204',
-      interval: 300
-    },
-    {
-      name: 'Budget',
-      type: 'url-test',
-      proxies: names.slice(0, 5),
-      url: 'https://www.gstatic.com/generate_204',
-      interval: 300
-    },
-    {
-      name: 'Low Rate',
-      type: 'url-test',
-      proxies: names,
-      url: 'https://www.gstatic.com/generate_204',
-      interval: 300
-    }
+    { name: 'Main Proxy', type: 'select', proxies: ['Auto', 'Low Rate', 'Budget', ...names] },
+    { name: 'Auto', type: 'url-test', proxies: names, url: 'https://www.gstatic.com/generate_204', interval: 300 },
+    { name: 'Budget', type: 'url-test', proxies: names.slice(0, 5), url: 'https://www.gstatic.com/generate_204', interval: 300 },
+    { name: 'Low Rate', type: 'url-test', proxies: names, url: 'https://www.gstatic.com/generate_204', interval: 300 }
   ],
   'rule-providers': {},
   rules: ['MATCH,Main Proxy']
@@ -60,36 +38,29 @@ const out = convertClashToLoon(clash, {
   powerProfile: 'battery'
 });
 
-assert.match(
-  out.config,
-  /\[Remote Proxy\]\nC2L_Nodes = https:\/\/example\.workers\.dev\/nodes\?token=TEST_TOKEN,udp=true,enabled=true/
-);
-assert.ok(!out.config.includes('excludePinned'));
-assert.ok(!out.config.includes('__C2L_'));
-assert.ok(!out.config.includes('NameRegex,C2L_Nodes'));
-assert.match(out.config, /C2L_NodeSet_[0-9a-f]{8}_1 = NameRegex, FilterKey = "/);
+assert.ok(!out.config.includes('[Remote Proxy]'));
+assert.ok(!out.config.includes('[Remote Filter]'));
+assert.equal(out.stats.nodeDelivery, 'inline');
+assert.equal(out.stats.remoteFilters, 0);
+
+for (const name of names) {
+  assert.ok(out.config.includes(`${name} = trojan,`), `[Proxy] lost inline node: ${name}`);
+}
 
 const selectLine = out.config.split('\n').find(v => v.startsWith('Main Proxy = select,'));
-assert.ok(selectLine);
-assert.match(
-  selectLine,
-  /^Main Proxy = select,Auto,Low Rate,Budget,C2L_NodeSet_[0-9a-f]{8}_1$/
-);
+assert.equal(selectLine, `Main Proxy = select,Auto,Low Rate,Budget,${names.join(',')}`);
 
 for (const groupName of ['Auto', 'Budget', 'Low Rate']) {
   const line = out.config.split('\n').find(v => v.startsWith(`${groupName} = `));
-  assert.ok(line);
-  assert.match(line, /C2L_NodeSet_[0-9a-f]{8}_1/);
+  assert.ok(line, `missing group: ${groupName}`);
+  assert.ok(line.includes(names[0]));
 }
 
-assert.ok(out.config.includes('HK-01 0\\.20x'));
-assert.ok(out.config.includes('Tokyo-Edge-01 0\\.1x \\| ISP'));
 assert.equal(out.stats.powerProfile, 'battery');
 
 console.log(JSON.stringify({
   ok: true,
   remoteFilters: out.stats.remoteFilters,
   powerProfile: out.stats.powerProfile,
-  orderedRemoteFilters: true,
-  singleStableNodeSubscription: true
+  inlineNodes: true
 }, null, 2));

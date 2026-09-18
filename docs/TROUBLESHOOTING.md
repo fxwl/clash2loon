@@ -51,17 +51,25 @@ Review the returned `error` or `warnings` rather than changing Loon first.
 
 ## 3. `/nodes` works but `/loon` fails
 
-This usually points to a main-config merge or policy-generation issue rather than node conversion.
+This usually points to main-config merging or policy-group generation rather than node conversion.
 
 Check:
 
-- invalid policy references
-- oversized lines
-- malformed Remote Filter syntax
-- custom Loon Base content
-- plugin lines injected through `MANAGED_PLUGINS_JSON`
+- invalid policy references;
+- oversized policy-group lines;
+- malformed local `NameRegex` filter syntax;
+- custom Loon Base content;
+- plugin lines injected through `MANAGED_PLUGINS_JSON`.
 
-Temporarily unset optional configuration and retry with the neutral embedded base.
+In v1.5.21, successfully converted nodes are already inline in `[Proxy]`; `/loon` does not depend on `[Remote Proxy]`.
+
+Use `/status` and inspect `maxProxyGroupLineBytes` plus `groupDiagnostics`. To isolate group-compaction compatibility, retry with:
+
+```text
+/loon?token=YOUR_TOKEN&compact=off
+```
+
+If the all-inline fallback works, include the normal and `compact=off` status diagnostics when reporting the issue.
 
 ## 4. `/loon` works in Safari but Loon cannot refresh it
 
@@ -119,11 +127,24 @@ If two nodes differ in UUID, password, UDP, transport, TLS, Reality or another f
 
 ## 8. Policy group lost nodes
 
-Inspect generated Remote Filters.
+Inspect `stats.groupDiagnostics` in `/status`. Useful fields are:
 
-Clash2Loon compacts concrete node runs into exact-name `NameRegex` filters. Named groups and built-in policies are kept in YAML order.
+- `sourceMembers`: members requested by the resolved YAML group;
+- `resolvedMembers`: members that resolve to converted nodes, valid groups, chains, or built-ins;
+- `emittedMembers`: references written to the Loon group line;
+- `compressedNodeMembers`: concrete nodes represented by local filters;
+- `filterRefs`: generated filter references used by the group;
+- `compactionMode`: `inline` or `local-filter`;
+- `lineBytes`: UTF-8 byte length of the generated group line;
+- `missingMembers`: unresolved YAML members.
+
+Small groups stay inline. Large, order-safe concrete-node runs may use exact local `NameRegex` filters. Custom/reversed ordering stays inline.
+
+Mihomo dynamic groups are expanded only from successfully converted nodes, so unsupported proxy types must not be reintroduced by `include-all`.
 
 If an upstream group references an unknown member, `/status` reports `GROUP_MEMBER_NOT_FOUND`.
+
+For a compatibility comparison, request `/status?token=...&compact=off`.
 
 ## 9. Rule Provider fails
 

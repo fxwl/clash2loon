@@ -51,17 +51,25 @@ https://YOUR-WORKER/status?token=YOUR_TOKEN
 
 ## 3. `/nodes` 正常但 `/loon` 失败
 
-这通常说明问题在主配置合并或策略生成，而不是节点协议转换。
+这通常说明问题在主配置合并或策略组生成，而不是节点协议转换。
 
 检查：
 
-- 无效策略引用
-- 过长配置行
-- Remote Filter 语法错误
-- 自定义 Loon Base 内容
-- `MANAGED_PLUGINS_JSON` 注入的插件行
+- 无效策略引用；
+- 策略组单行过长；
+- 本地 `NameRegex` Filter 语法错误；
+- 自定义 Loon Base 内容；
+- `MANAGED_PLUGINS_JSON` 注入的插件行。
 
-可以暂时关闭可选配置，使用内置中性 Base 重试。
+v1.5.21 中，成功转换的节点已经直接写入 `[Proxy]`，`/loon` 不依赖 `[Remote Proxy]`。
+
+建议检查 `/status` 中的 `maxProxyGroupLineBytes` 与 `groupDiagnostics`。如果怀疑策略组压缩兼容性，可以直接测试：
+
+```text
+/loon?token=YOUR_TOKEN&compact=off
+```
+
+如果全 Inline 回退模式正常，提交问题时同时附上正常模式和 `compact=off` 的脱敏诊断信息。
 
 ## 4. Safari 能打开 `/loon`，但 Loon 自己无法刷新
 
@@ -119,11 +127,24 @@ CONTROL_PLANE_DOMAINS=resources.example.com,=exact.example.net
 
 ## 8. 策略组少了节点
 
-检查生成后的 Remote Filter。
+优先检查 `/status` 中的 `stats.groupDiagnostics`：
 
-Clash2Loon 会把连续实体节点压缩为精确名称的 `NameRegex` 过滤器，同时保留命名策略组和内置策略在 YAML 中的原始顺序。
+- `sourceMembers`：解析后的 YAML 策略组要求的成员数；
+- `resolvedMembers`：能解析到已转换节点、有效策略组、代理链或内置策略的成员数；
+- `emittedMembers`：最终写入 Loon 策略组行的引用数；
+- `compressedNodeMembers`：由本地 Filter 表示的实体节点数；
+- `filterRefs`：该组引用的生成 Filter 数；
+- `compactionMode`：`inline` 或 `local-filter`；
+- `lineBytes`：生成后策略组单行的 UTF-8 字节数；
+- `missingMembers`：无法解析的 YAML 成员。
 
-如果上游策略组引用了未知成员，`/status` 会返回 `GROUP_MEMBER_NOT_FOUND`。
+小型策略组保持 Inline；超大型且顺序安全的节点段可以使用精确本地 `NameRegex` Filter；自定义排序和倒序保持 Inline。
+
+Mihomo 动态策略组只会从成功转换的节点中展开，因此不支持的代理协议不会被 `include-all` 重新加入。
+
+如果上游策略组引用未知成员，`/status` 会返回 `GROUP_MEMBER_NOT_FOUND`。
+
+如需对照测试，可以访问 `/status?token=...&compact=off`。
 
 ## 9. Rule Provider 失败
 
