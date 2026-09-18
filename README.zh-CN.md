@@ -291,6 +291,10 @@ npm test -- /path/to/clash.yaml
 - [测试说明](TEST_REPORT.zh-CN.md)
 - [更新日志](CHANGELOG.zh-CN.md)
 
+## 友情链接 / 支持社区
+
+- [LINUX DO](https://linux.do/) — 欢迎在社区交流 Cloudflare Workers、Loon、Clash / Mihomo 配置转换、部署与故障排查等相关问题。
+
 ## 已知限制
 
 - 不会尝试支持所有 Clash 协议，目前重点是 VLESS / Trojan / Hysteria2。

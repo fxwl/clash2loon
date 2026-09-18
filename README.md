@@ -291,6 +291,10 @@ Do not commit your real test YAML.
 - [Validation notes](TEST_REPORT.md)
 - [Changelog](CHANGELOG.md)
 
+## Community & Friends
+
+- [LINUX DO](https://linux.do/) — Community discussion and peer support for Cloudflare Workers, Loon, Clash/Mihomo configuration conversion, deployment, and troubleshooting.
+
 ## Known Limitations
 
 - The converter intentionally does not attempt to support every Clash protocol. The current focus is VLESS, Trojan, and Hysteria2.
