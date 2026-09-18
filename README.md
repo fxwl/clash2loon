@@ -293,7 +293,7 @@ Do not commit your real test YAML.
 
 ## Community & Friends
 
-- [LINUX DO](https://linux.do/) — Community discussion and peer support for Cloudflare Workers, Loon, Clash/Mihomo configuration conversion, deployment, and troubleshooting.
+- [LINUX DO](https://linux.do/)
 
 ## Known Limitations
 
