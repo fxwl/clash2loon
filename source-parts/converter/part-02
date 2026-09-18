@@ -1,4 +1,13 @@
-    const raw = Array.isArray(group.proxies) ? group.proxies.map(cleanName).filter(Boolean) : [];
+    const resolvedMembers = resolveGroupMembers(group, regularNodeNames, chainNames, warnings);
+    const raw = resolvedMembers.members;
+    if (resolvedMembers.includeAll) {
+      dynamicGroupExpansions.push({
+        group: name,
+        added: resolvedMembers.autoAdded,
+        filter: resolvedMembers.filter,
+        excludeFilter: resolvedMembers.excludeFilter
+      });
+    }
     const nodeMembers = raw.filter(m => regularNodes.has(m));
     const nodeSet = new Set(nodeMembers);
     const filterNames = filtersFor(nodeMembers);
@@ -58,7 +67,8 @@
     filterLines,
     compressedNodeReferences,
     uniqueNodeSets: filterCache.size,
-    powerTuning
+    powerTuning,
+    dynamicGroupExpansions
   };
 }
 
