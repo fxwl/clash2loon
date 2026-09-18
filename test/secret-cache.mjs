@@ -15,7 +15,7 @@ assert.match(managedPlugins, /MANAGED_PLUGINS_JSON/);
 
 console.log(JSON.stringify({
   ok: true,
-  cacheRevision: 'v1.5.21',
+  cacheRevision: 'v1.5.22',
   compactFallbackWired: true,
   personalSecretLogicRemoved: true,
   controlPlanePolicyWired: true,
