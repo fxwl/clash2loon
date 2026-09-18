@@ -33,7 +33,7 @@ Worker 部署完成后，建议按下面顺序完成新设备上的 Loon 初始�
 9. 打开 Loon 总开关后，点击 [一键更新所有外部资源](https://www.nsloon.com/openloon/update?sub=all)，统一更新订阅、规则、插件、脚本及其他外部资源。
 10. 等待所有资源更新完成后，回到仪表界面，将 Loon 总开关关闭再重新打开一次，使新的配置和资源完整重新加载。
 
-> **Clash2Loon 特别说明：**完整 `/loon?token=...` 配置已经通过 `[Remote Proxy]` 自动引用 `/nodes?token=...`。正常情况下不需要再手工添加一次生成的 `/nodes` 地址，否则可能形成重复节点源。
+> **Clash2Loon 特别说明：**完整 `/loon?token=...` 配置已经在 `[Proxy]` 中包含所有成功转换的节点。正常情况下不需要再手工添加生成的 `/nodes` 地址；`/nodes` 仅作为可选的独立节点订阅和诊断接口保留。
 
 > **证书安全说明：**安装并信任 MitM 证书后，已启用的 MitM / Rewrite / Script 能够检查受支持的 HTTPS 流量。只应对你信任的配置和第三方插件启用 MitM。
 
