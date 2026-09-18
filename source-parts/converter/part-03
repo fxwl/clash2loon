@@ -102,6 +102,8 @@
       proxyGroups: groups.length, remoteFilters: compact.filterLines.length,
       uniqueNodeSets: compact.uniqueNodeSets,
       compressedNodeReferences: compact.compressedNodeReferences,
+      dynamicGroupsExpanded: compact.dynamicGroupExpansions.filter(item => item.added > 0).length,
+      dynamicGroupExpansions: compact.dynamicGroupExpansions,
       ruleProviders: Object.keys(providers).length, sourceRules: rules.length,
       remoteRuleSubscriptions: remoteRules.length, warnings: warnings.length,
       controlPlanePolicy: controlPlanePolicy || null,
