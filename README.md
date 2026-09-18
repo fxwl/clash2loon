@@ -1,5 +1,7 @@
 # Clash2Loon Worker
 
+A dynamic Clash / Mihomo → Loon configuration converter designed to run on Cloudflare Workers.
+
 [English](README.md) | [简体中文](README.zh-CN.md)
 
 [![CI](https://github.com/fxwl/clash2loon/actions/workflows/ci.yml/badge.svg)](https://github.com/fxwl/clash2loon/actions/workflows/ci.yml)
@@ -15,9 +17,6 @@ Special thanks to Kelee for the long-term work in organizing, maintaining, and s
 
 If you are looking for **Loon plugins**, visit [ProxyResource](https://github.com/luestr/ProxyResource).
 
-A dynamic Clash / Mihomo → Loon configuration converter designed to run on Cloudflare Workers.
-
-> The public edition contains **no real subscription URL, access token, deployment domain, proxy credential, private plugin URL, or personal Loon configuration**.
 
 ## Features
 
