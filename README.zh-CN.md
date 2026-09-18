@@ -1,5 +1,7 @@
 # Clash2Loon Worker
 
+一个运行在 Cloudflare Workers 上的 Clash / Mihomo → Loon 动态配置转换器。
+
 [English](README.md) | [简体中文](README.zh-CN.md)
 
 [![CI](https://github.com/fxwl/clash2loon/actions/workflows/ci.yml/badge.svg)](https://github.com/fxwl/clash2loon/actions/workflows/ci.yml)
@@ -15,9 +17,6 @@ Clash2Loon 最初是在我长期使用 Loon 的过程中，受到 [可莉的 Loo
 
 如果你有 **Loon 插件**方面的需求，可以前往 [ProxyResource](https://github.com/luestr/ProxyResource) 查看。
 
-一个运行在 Cloudflare Workers 上的 Clash / Mihomo → Loon 动态配置转换器。
-
-> 公开版仓库中**不包含真实订阅地址、访问 Token、部署域名、代理凭据、私人插件地址或个人 Loon 配置**。
 
 ## 主要能力
 
