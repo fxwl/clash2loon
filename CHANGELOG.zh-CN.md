@@ -14,6 +14,31 @@ Clash2Loon 的公开版本重要变更记录在这里。
 - 完善更多 Loon 原生 Base 配置的文档。
 - 在不猜测未文档化 Loon 行为的前提下继续扩展协议支持。
 
+## [1.5.21] - 2026-09-18
+
+### 新增
+
+- 支持 Mihomo 动态策略组：`include-all` / `include-all-proxies`、`filter`、`exclude-filter`。
+- `/status` 新增组级诊断：源成员数、已解析成员数、输出引用数、单行字节数、缺失成员、压缩模式、压缩节点数和 Filter 引用数。
+- `/loon` 与 `/status` 支持按请求使用 `compact=off`，快速切回全 Inline 兼容模式。
+- 增加 33 节点 Inline 组、192 节点大组、自定义/倒序、动态组以及全 Inline 回退的回归测试。
+
+### 调整
+
+- 所有成功转换的节点现在直接写入 Loon `[Proxy]`；主 `/loon` 配置不再依赖 `[Remote Proxy]`。
+- 小型和中型策略组保持全 Inline。
+- 只有超大型且顺序安全的连续节点段才使用精确本地 `NameRegex` Filter。
+- 策略组达到 64 个实体节点或 2048 bytes Inline 成员文本时进入压缩候选；单个节点段至少需要 16 个节点或 512 bytes。
+- 相同节点集合复用生成的 Filter。
+- 自定义排序或倒序保持 Inline，避免改变 YAML 原始选择顺序。
+- 动态策略组只会从成功转换的节点和有效代理链中展开，避免不支持的代理定义重新进入策略组。
+- `/nodes` 继续保留为独立节点订阅和诊断接口。
+
+### 兼容性
+
+- `MANAGED_PLUGINS_JSON`、`CONTROL_PLANE_POLICY`、`CONTROL_PLANE_DOMAINS` 等公开版通用能力保持不变。
+- 本版本不包含生产订阅地址、访问 Token、私人部署域名或私人插件配置。
+
 ## [1.5.16] - 2026-09-14
 
 ### 新增
