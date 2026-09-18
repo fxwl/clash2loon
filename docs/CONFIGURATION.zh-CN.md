@@ -174,11 +174,34 @@ Loon Base 中未知的区段会被保留。
 
 被移除重复节点的策略组引用会自动重映射到第一个保留节点。
 
-## 远程节点过滤器
+## Inline 节点与混合策略组压缩
 
-节点定义放在 `/nodes`，而不是重复写进主配置。
+成功转换的节点直接写入 `[Proxy]`。
 
-策略组通过精确节点名的 `NameRegex` 过滤器引用节点。大型节点集合会自动分块，避免生成行过长。
+小型和中型策略组直接引用这些真实节点名；只有超大型、且节点顺序安全的连续节点段才会使用精确本地 `NameRegex` Filter，以避免 `[Proxy Group]` 单行过长。
+
+默认阈值：
+
+- 策略组进入压缩候选：实体节点至少 64 个，或 Inline 成员文本达到 2048 bytes；
+- 单个节点段进入压缩：至少 16 个节点，或达到 512 bytes；
+- 自定义排序或倒序：保持 Inline。
+
+生成的 Filter 使用精确节点名；相同节点集合会复用。整个过程不需要 `[Remote Proxy]` 节点源。
+
+`/nodes` 仍保留为独立节点订阅和诊断接口。
+
+## 运行时查询参数：`compact`
+
+默认开启策略组压缩。如需临时强制所有策略组成员使用 Inline，可使用任意 false 值：
+
+```text
+/loon?token=YOUR_TOKEN&compact=off
+/status?token=YOUR_TOKEN&compact=off
+```
+
+支持的 false 值为 `0`、`false`、`off`、`no`。
+
+这是按请求生效的兼容性开关，不是 Worker 环境变量。
 
 ## Rule Provider 转换
 
