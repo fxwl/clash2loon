@@ -293,7 +293,7 @@ npm test -- /path/to/clash.yaml
 
 ## 友情链接 / 支持社区
 
-- [LINUX DO](https://linux.do/) — 欢迎在社区交流 Cloudflare Workers、Loon、Clash / Mihomo 配置转换、部署与故障排查等相关问题。
+- [LINUX DO](https://linux.do/)
 
 ## 已知限制
 
