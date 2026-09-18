@@ -8,7 +8,7 @@ assert.match(index, /const cacheVariant = `loon:v1\.5\.21:\$\{powerProfile\}`;/)
 assert.match(index, /const cacheVariant = `status:v1\.5\.21:\$\{powerProfile\}`;/);
 assert.match(index, /const compactParam = String\(url\.searchParams\.get\('compact'\) \|\| ''\)/);
 assert.match(index, /groupCompaction/);
-assert.doesNotMatch(index, /IOS_LOCATION_TOKEN|excludePinned|includePinned/);
+assert.doesNotMatch(index, /locationPluginState|excludePinned|includePinned/);
 assert.match(index, /controlPlanePolicy: env\.CONTROL_PLANE_POLICY \|\| ''/);
 assert.match(index, /controlPlaneDomains: parseCsv\(env\.CONTROL_PLANE_DOMAINS\)/);
 assert.match(managedPlugins, /MANAGED_PLUGINS_JSON/);
