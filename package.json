@@ -1,6 +1,6 @@
 {
   "name": "clash2loon-worker",
-  "version": "1.5.16",
+  "version": "1.5.21",
   "description": "Convert Clash/Mihomo YAML subscriptions into Loon remote configurations on Cloudflare Workers.",
   "type": "module",
   "license": "MIT",
@@ -12,7 +12,7 @@
     "postinstall": "npm run materialize",
     "predev": "npm run materialize",
     "dev": "wrangler dev",
-    "predeploy": "npm run materialize && node --check src/index.js && node --check src/converter.js && node --check src/base-merge.js && node --check src/managed-plugins.js && node test/base-merge.mjs && node test/filter-compat.mjs && node test/select-head.mjs && node test/node-dedup.mjs && node test/power-profile.mjs && node test/managed-plugins.mjs && node test/secret-cache.mjs && node test/watch-compat.mjs",
+    "predeploy": "npm run materialize && node --check src/index.js && node --check src/converter.js && node --check src/base-merge.js && node --check src/managed-plugins.js && node test/base-merge.mjs && node test/filter-compat.mjs && node test/select-head.mjs && node test/static-inline-groups.mjs && node test/hybrid-group-compaction.mjs && node test/dynamic-groups.mjs && node test/node-dedup.mjs && node test/power-profile.mjs && node test/managed-plugins.mjs && node test/secret-cache.mjs && node test/watch-compat.mjs",
     "deploy": "wrangler deploy",
     "pretest": "npm run materialize",
     "test": "node test/convert.mjs",
@@ -20,11 +20,14 @@
     "test:power": "npm run materialize && node test/power-profile.mjs",
     "test:filter": "npm run materialize && node test/filter-compat.mjs",
     "test:select-head": "npm run materialize && node test/select-head.mjs",
+    "test:static-inline": "npm run materialize && node test/static-inline-groups.mjs",
+    "test:hybrid-groups": "npm run materialize && node test/hybrid-group-compaction.mjs",
+    "test:dynamic-groups": "npm run materialize && node test/dynamic-groups.mjs",
     "test:dedup": "npm run materialize && node test/node-dedup.mjs",
     "test:plugins": "npm run materialize && node test/managed-plugins.mjs",
     "test:cache": "npm run materialize && node test/secret-cache.mjs",
     "test:watch": "npm run materialize && node test/watch-compat.mjs",
-    "test:regression": "npm run materialize && node test/base-merge.mjs && node test/filter-compat.mjs && node test/select-head.mjs && node test/node-dedup.mjs && node test/power-profile.mjs && node test/managed-plugins.mjs && node test/secret-cache.mjs && node test/watch-compat.mjs"
+    "test:regression": "npm run materialize && node test/base-merge.mjs && node test/filter-compat.mjs && node test/select-head.mjs && node test/static-inline-groups.mjs && node test/hybrid-group-compaction.mjs && node test/dynamic-groups.mjs && node test/node-dedup.mjs && node test/power-profile.mjs && node test/managed-plugins.mjs && node test/secret-cache.mjs && node test/watch-compat.mjs"
   },
   "dependencies": {
     "yaml": "^2.8.1"
