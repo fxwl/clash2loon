@@ -33,7 +33,7 @@ After the Worker has been deployed, the following sequence is recommended for a 
 9. Turn Loon on, then tap [Update all external resources](https://www.nsloon.com/openloon/update?sub=all) to refresh subscriptions, rules, plugins, scripts, and other external resources in one operation.
 10. After all resources finish updating, return to the Loon dashboard and toggle Loon off and back on once so the refreshed configuration is fully reloaded.
 
-> **Clash2Loon note:** when you import the complete `/loon?token=...` configuration, it already references `/nodes?token=...` through `[Remote Proxy]`. You normally do **not** need to manually add the generated `/nodes` URL again, otherwise you may end up with duplicate node sources.
+> **Clash2Loon note:** when you import the complete `/loon?token=...` configuration, successfully converted nodes are already included in `[Proxy]`. You normally do **not** need to add the generated `/nodes` URL separately; `/nodes` is retained as an optional standalone feed and diagnostic endpoint.
 
 > **Certificate note:** installing and trusting the MitM certificate allows enabled MitM/Rewrite/Script features to inspect supported HTTPS traffic. Only enable MitM for configurations and third-party plugins you trust.
 
