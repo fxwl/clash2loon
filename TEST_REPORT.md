@@ -9,7 +9,8 @@ This document describes the public regression scope. It intentionally contains n
 - VLESS, including Reality and WebSocket transports
 - Trojan
 - Hysteria2
-- `dialer-proxy` to Loon proxy chains
+- SOCKS5 (`socks` / `socks5`), including authenticated/TLS nodes
+- `dialer-proxy` to Loon proxy chains, including SOCKS5 landing nodes
 - Clash/Mihomo proxy groups to Loon policy groups
 - Mihomo dynamic group expansion via `include-all` / `include-all-proxies`, `filter`, and `exclude-filter`
 - Inline `[Proxy]` node delivery in the complete `/loon` config
@@ -44,6 +45,7 @@ The regression suite checks:
 - `compact=off` all-inline fallback;
 - Mihomo dynamic group expansion and exclusion of unsupported nodes;
 - node deduplication;
+- SOCKS5 conversion and SOCKS5 `dialer-proxy` chain generation;
 - battery/balanced/source interval behavior;
 - managed plugin injection;
 - cache/config wiring;

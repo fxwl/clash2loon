@@ -21,8 +21,8 @@ If you are looking for **Loon plugins**, visit [ProxyResource](https://github.co
 ## Features
 
 - Convert Clash / Mihomo YAML into a Loon Remote Configuration.
-- Support VLESS, VLESS Reality, VLESS WebSocket, Trojan, and Hysteria2.
-- Convert `dialer-proxy` relationships into Loon Proxy Chains.
+- Support VLESS, VLESS Reality, VLESS WebSocket, Trojan, Hysteria2, and SOCKS5 (`socks` / `socks5`).
+- Convert `dialer-proxy` relationships into Loon Proxy Chains, including SOCKS5 landing nodes.
 - Preserve YAML-defined nodes, policy groups, rules, Rule Providers, and MATCH / FINAL semantics.
 - Keep successfully converted nodes inline in Loon `[Proxy]`; small and medium groups stay inline, while oversized order-safe node runs are compacted through exact local `NameRegex` filters.
 - Expand Mihomo dynamic groups using `include-all` / `include-all-proxies`, `filter`, and `exclude-filter` over successfully converted nodes.

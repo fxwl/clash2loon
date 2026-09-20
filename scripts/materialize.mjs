@@ -10,7 +10,7 @@ function replaceRequired(source, from, to, label) {
 
 function patchConverterForLoon(source) {
   // Loon node filters can classify local [Proxy] nodes as well as subscription
-  // nodes. v1.5.22 therefore keeps nodes inline and uses unscoped NameRegex
+  // nodes. v1.5.23 therefore keeps nodes inline and uses unscoped NameRegex
   // filters only to compact very large proxy-group member lists.
   source = replaceRequired(
     source,
@@ -67,9 +67,9 @@ function patchConverterForLoon(source) {
     'regular node order map'
   );
 
-  // v1.5.22 hybrid compaction keeps small groups inline and compacts only
+  // v1.5.23 hybrid compaction keeps small groups inline and compacts only
   // large, order-safe runs of local nodes through exact NameRegex filters.
-  // v1.5.22 inline membership semantics.
+  // v1.5.23 inline membership semantics.
   source = replaceRequired(
     source,
     "  const dynamicGroupExpansions = [];\n  let compressedNodeReferences = 0;",
@@ -137,20 +137,20 @@ function patchConverterForLoon(source) {
   source = replaceRequired(
     source,
     "    '# Generated dynamically by Clash2Loon Cloudflare Worker v1.5 strict-native',\n    `# Upstream nodes: ${proxies.length}; groups: ${groups.length}; providers: ${Object.keys(providers).length}; rules: ${rules.length}`,\n    `# Power profile: ${power.profile}; adjusted url-test groups: ${adjustedPowerGroups}/${compact.powerTuning.length}`,\n    '# Nodes are loaded from /nodes; large Clash node lists are represented by dynamic Loon NameRegex filters.',",
-    "    '# Clash2Loon v1.5.22',\n    `# Generated at: ${formatGeneratedAt()}`,\n    `# Power profile: ${power.profile}`,",
+    "    '# Clash2Loon v1.5.23',\n    `# Generated at: ${formatGeneratedAt()}`,\n    `# Power profile: ${power.profile}`,",
     'concise generated config header'
   );
 
-  source = source.replaceAll('v1.5 strict-native', 'v1.5.22 strict-native');
-  source = source.replaceAll('loon-doc-strict-v1.5', 'loon-doc-strict-v1.5.22');
+  source = source.replaceAll('v1.5 strict-native', 'v1.5.23 strict-native');
+  source = source.replaceAll('loon-doc-strict-v1.5', 'loon-doc-strict-v1.5.23');
   return source;
 }
 
 function patchIndexVersion(source) {
   source = source
-    .replaceAll('Clash2Loon-Worker/1.5', 'Clash2Loon-Worker/1.5.22')
-    .replaceAll('v1.5-strict-native', 'v1.5.22-strict-native')
-    .replaceAll('v1.5 strict native', 'v1.5.22 strict native');
+    .replaceAll('Clash2Loon-Worker/1.5', 'Clash2Loon-Worker/1.5.23')
+    .replaceAll('v1.5-strict-native', 'v1.5.23-strict-native')
+    .replaceAll('v1.5 strict native', 'v1.5.23 strict native');
 
   source = replaceRequired(
     source,
@@ -168,13 +168,13 @@ function patchIndexVersion(source) {
   source = replaceRequired(
     source,
     "  const cacheVariant = `loon:${powerProfile}`;",
-    "  const cacheVariant = `loon:v1.5.22:${powerProfile}`;",
+    "  const cacheVariant = `loon:v1.5.23:${powerProfile}`;",
     'Loon cache revision'
   );
   source = replaceRequired(
     source,
     "  const cacheVariant = `status:${powerProfile}`;",
-    "  const cacheVariant = `status:v1.5.22:${powerProfile}`;",
+    "  const cacheVariant = `status:v1.5.23:${powerProfile}`;",
     'status cache revision'
   );
   return source;
@@ -193,4 +193,4 @@ async function joinParts(sourceDir, outputFile, count, transform = value => valu
 await joinParts('source-parts/converter', 'src/converter.js', 5, patchConverterForLoon);
 await joinParts('source-parts/index', 'src/index.js', 4, patchIndexVersion);
 
-console.log('Materialized src/converter.js and src/index.js (public v1.5.22: dynamic groups + inline nodes + hybrid local-filter compaction)');
+console.log('Materialized src/converter.js and src/index.js (public v1.5.23: dynamic groups + inline nodes + hybrid local-filter compaction)');

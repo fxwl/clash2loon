@@ -5,11 +5,35 @@
   params.push(`udp=${bool(proxy.udp, true)}`);
   return `${name} = Hysteria2,${proxy.server},${proxy.port},${q(proxy.password)},${params.join(',')}`;
 }
+function convertSocks5(proxy) {
+  const name = cleanName(proxy.name);
+  const params = [];
+  const auth = [];
+  const hasAuth = proxy.username != null || proxy.password != null;
+
+  if (hasAuth) {
+    auth.push(pv(proxy.username ?? ''), q(proxy.password ?? ''));
+  }
+
+  const tlsEnabled = bool(proxy.tls) || bool(proxy['over-tls']);
+  if (tlsEnabled) {
+    params.push('over-tls=true');
+    tlsCommon(proxy, params, true);
+  }
+
+  const fastOpen = proxy.tfo ?? proxy['fast-open'];
+  if (fastOpen != null) params.push(`fast-open=${bool(fastOpen)}`);
+  params.push(`udp=${bool(proxy.udp, true)}`);
+
+  return `${name} = socks5,${proxy.server},${proxy.port}${auth.length ? ',' + auth.join(',') : ''}${params.length ? ',' + params.join(',') : ''}`;
+}
 function convertProxyLine(proxy, warnings) {
   switch (str(proxy.type).toLowerCase()) {
     case 'vless': return convertVless(proxy, warnings);
     case 'trojan': return convertTrojan(proxy);
     case 'hysteria2': return convertHysteria2(proxy, warnings);
+    case 'socks':
+    case 'socks5': return convertSocks5(proxy);
     default:
       warnings.push({ code: 'PROXY_TYPE_UNSUPPORTED', node: cleanName(proxy.name), detail: `Unsupported Clash proxy type: ${proxy.type}` });
       return null;
