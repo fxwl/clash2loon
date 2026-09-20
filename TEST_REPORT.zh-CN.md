@@ -9,7 +9,8 @@
 - VLESS，包括 Reality 和 WebSocket 传输
 - Trojan
 - Hysteria2
-- `dialer-proxy` → Loon Proxy Chain
+- SOCKS5（`socks` / `socks5`），包括认证与 TLS 节点
+- `dialer-proxy` → Loon Proxy Chain，包括 SOCKS5 落地节点
 - Clash / Mihomo Proxy Group → Loon Policy Group
 - Mihomo 动态策略组：`include-all` / `include-all-proxies`、`filter`、`exclude-filter`
 - 完整 `/loon` 配置中的 Inline `[Proxy]` 节点
@@ -44,6 +45,7 @@ npm run test:regression
 - `compact=off` 全 Inline 回退；
 - Mihomo 动态策略组展开及不支持节点排除；
 - 节点去重；
+- SOCKS5 转换与 SOCKS5 `dialer-proxy` 中转链生成；
 - battery / balanced / source interval 行为；
 - 托管插件注入；
 - 缓存 / 配置接线；
