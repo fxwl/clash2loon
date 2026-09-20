@@ -14,6 +14,15 @@ Clash2Loon 的公开版本重要变更记录在这里。
 - 完善更多 Loon 原生 Base 配置的文档。
 - 在不猜测未文档化 Loon 行为的前提下继续扩展协议支持。
 
+## [1.5.23] - 2026-09-20
+
+### 新增
+
+- 支持 Mihomo `type: socks` 与 `type: socks5` 转换为 Loon SOCKS5 节点。
+- 支持 SOCKS5 用户名/密码、TLS/SNI、`skip-cert-verify`、TCP Fast Open 与 UDP 参数映射。
+- 带 `dialer-proxy` 的 SOCKS5 节点接入现有 Loon Proxy Chain 转换，可作为中转后的落地节点使用。
+- 新增无认证 SOCKS、TLS 认证 SOCKS5、SOCKS5 中转链回归测试。
+
 ## [1.5.22] - 2026-09-18
 
 ### 修复
