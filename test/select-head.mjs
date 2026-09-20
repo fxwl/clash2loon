@@ -46,7 +46,7 @@ const out = convertClashToLoon(clash, {
 });
 
 const header = out.config.split('\n').slice(0, 4);
-assert.equal(header[0], '# Clash2Loon v1.5.22');
+assert.equal(header[0], '# Clash2Loon v1.5.23');
 assert.match(header[1], /^# Generated at: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} GMT\+8$/);
 assert.equal(header[2], '# Power profile: battery');
 
