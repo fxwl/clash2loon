@@ -21,8 +21,8 @@ Clash2Loon 最初是在我长期使用 Loon 的过程中，受到 [可莉的 Loo
 ## 主要能力
 
 - 将 Clash / Mihomo YAML 转换为 Loon Remote Configuration。
-- 支持 VLESS、VLESS Reality、VLESS WebSocket、Trojan、Hysteria2。
-- 将 `dialer-proxy` 转换为 Loon Proxy Chain。
+- 支持 VLESS、VLESS Reality、VLESS WebSocket、Trojan、Hysteria2、SOCKS5（`socks` / `socks5`）。
+- 将 `dialer-proxy` 转换为 Loon Proxy Chain，包括 SOCKS5 落地节点。
 - 保留 YAML 中定义的节点、策略组、规则、Rule Provider 和 MATCH / FINAL 逻辑。
 - 成功转换的节点直接写入 Loon `[Proxy]`；小型和中型策略组继续直接引用真实节点，超大型且顺序安全的节点段才使用精确本地 `NameRegex` Filter 压缩。
 - 支持 Mihomo 动态策略组：`include-all` / `include-all-proxies`、`filter`、`exclude-filter`，且只会从成功转换的节点中展开。
