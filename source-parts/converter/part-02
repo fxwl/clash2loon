@@ -118,7 +118,7 @@ export function convertClashToLoon(clash, options = {}) {
       const kind = str(proxy.type).toLowerCase();
       const subtype = kind === 'vless'
         ? (proxy['reality-opts'] ? 'vless-reality' : (proxy.network === 'ws' ? 'vless-ws' : 'vless-other'))
-        : kind;
+        : ((kind === 'socks' || kind === 'socks5') ? 'socks5' : kind);
       nodeEntries.push({
         index: nodeEntries.length,
         name: cleanName(clone.name),
