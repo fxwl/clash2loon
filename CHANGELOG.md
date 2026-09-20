@@ -14,6 +14,15 @@ This project follows a pragmatic versioning model while the converter is still e
 - Improve documentation for additional Loon-native base configurations.
 - Continue conservative protocol support without guessing undocumented Loon behavior.
 
+## [1.5.23] - 2026-09-20
+
+### Added
+
+- SOCKS5 node conversion for Mihomo `type: socks` and `type: socks5`.
+- SOCKS5 authentication, TLS/SNI, `skip-cert-verify`, TCP Fast Open, and UDP mapping to documented Loon node fields.
+- SOCKS5 nodes with `dialer-proxy` now participate in the existing Loon Proxy Chain conversion.
+- Regression coverage for unauthenticated SOCKS, authenticated TLS SOCKS5, and SOCKS5 landing-node chains.
+
 ## [1.5.22] - 2026-09-18
 
 ### Fixed
