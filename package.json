@@ -28,7 +28,7 @@
     "test:plugins": "npm run materialize && node test/managed-plugins.mjs",
     "test:cache": "npm run materialize && node test/secret-cache.mjs",
     "test:watch": "npm run materialize && node test/watch-compat.mjs",
-    "test:regression": "npm run materialize && node test/base-merge.mjs && node test/filter-compat.mjs && node test/select-head.mjs && node test/static-inline-groups.mjs && node test/hybrid-group-compaction.mjs && node test/dynamic-groups.mjs && node test/node-dedup.mjs && node test/power-profile.mjs && node test/managed-plugins.mjs && node test/secret-cache.mjs && node test/watch-compat.mjs"
+    "test:regression": "npm run materialize && node test/base-merge.mjs && node test/filter-compat.mjs && node test/select-head.mjs && node test/static-inline-groups.mjs && node test/hybrid-group-compaction.mjs && node test/dynamic-groups.mjs && node test/node-dedup.mjs && node test/socks5-chain.mjs && node test/power-profile.mjs && node test/managed-plugins.mjs && node test/secret-cache.mjs && node test/watch-compat.mjs"
   },
   "dependencies": {
     "yaml": "^2.8.1"
