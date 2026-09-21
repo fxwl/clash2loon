@@ -24,7 +24,7 @@ Clash2Loon 最初是在我长期使用 Loon 的过程中，受到 [可莉的 Loo
 - 支持 VLESS、VLESS Reality、VLESS WebSocket、Trojan、Hysteria2、SOCKS5（`socks` / `socks5`）。
 - 将 `dialer-proxy` 转换为 Loon Proxy Chain，包括 SOCKS5 落地节点。
 - 保留 YAML 中定义的节点、策略组、规则、Rule Provider 和 MATCH / FINAL 逻辑。
-- 成功转换的节点直接写入 Loon `[Proxy]`；小型和中型策略组继续直接引用真实节点，超大型且顺序安全的节点段才使用精确本地 `NameRegex` Filter 压缩。
+- 成功转换的节点通过 `/nodes` 作为 `C2L_Nodes` `[Remote Proxy]` 链接节点加载；小型和中型策略组直接引用节点名，超大型且顺序安全的节点段使用限定 `C2L_Nodes` 来源的精确 `NameRegex` Remote Filter 压缩。
 - 支持 Mihomo 动态策略组：`include-all` / `include-all-proxies`、`filter`、`exclude-filter`，且只会从成功转换的节点中展开。
 - `/status` 提供组级诊断，并支持 `?compact=off` 一键切回全 Inline 兼容模式。
 - 仅对有效配置完全一致的节点进行精确去重，并自动修复策略组引用。
@@ -178,22 +178,23 @@ Authorization: Bearer YOUR_TOKEN
 
 ## 混合策略组编译
 
-v1.5.21 对策略组成员采用混合编译：
+v1.5.24 改为“链接节点 + 混合策略组编译”：
 
-- 所有成功转换的节点直接写入 `[Proxy]`；
-- 实体节点少于 64 个且成员文本低于 2048 bytes 的策略组保持全 Inline；
-- 只有超大型、且节点顺序与全局节点顺序一致的连续节点段才会转换为精确本地 `NameRegex` Filter；
+- 所有成功转换的节点由 `/nodes` 提供，并通过 `[Remote Proxy]` 以 `C2L_Nodes` 链接节点加载；
+- 主 `/loon` 配置不再把转换节点写入本地 `[Proxy]`；
+- 实体节点少于 64 个且成员文本低于 2048 bytes 的策略组，直接保留真实节点名；
+- 超大型且顺序安全的连续节点段会转换成限定 `C2L_Nodes` 来源的精确 `NameRegex` Remote Filter；
 - 相同节点集合会复用同一组 Filter；
-- 自定义排序、倒序等无法安全保持顺序的策略组自动回退为 Inline；
-- `/nodes` 仍保留用于诊断和独立节点订阅，但 `/loon` 不再依赖 `[Remote Proxy]`。
+- 自定义排序、倒序等无法安全压缩的策略组继续直接保留节点名，不会改变 YAML 顺序；
+- 上游删除节点后，刷新链接节点订阅即可从 `/nodes` 中同步移除，避免长期累积为 Loon 本地节点。
 
-如需兼容性排查，可以按请求关闭策略组压缩：
+如需兼容性排查，可以按请求关闭策略组 Filter 压缩：
 
 ```text
 https://YOUR-WORKER/loon?token=YOUR_TOKEN&compact=off
 ```
 
-`/status` 也可以带相同参数查看全 Inline 回退模式。
+`/status` 也可以使用相同参数。此时仍然使用 `C2L_Nodes` 链接节点，只是不生成 Remote Filter。
 
 ## 省电测速档位
 
@@ -304,7 +305,7 @@ npm test -- /path/to/clash.yaml
 
 ## 已知限制
 
-- 不会尝试支持所有 Clash 协议，目前重点是 VLESS / Trojan / Hysteria2。
+- 不会尝试支持所有 Clash 协议，目前重点是 VLESS / Trojan / Hysteria2 / SOCKS5。
 - Mihomo 的部分专有字段在 Loon 中没有一一对应能力，会被省略并产生 warning。
 - `PROCESS-NAME` 等桌面专用规则不会强行映射到 iOS。
 - Binary `.mrs` Rule Provider 只有在可以推导出已知文本 sibling 时才能转换。
