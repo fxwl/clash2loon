@@ -57,11 +57,11 @@ https://YOUR-WORKER/status?token=YOUR_TOKEN
 
 - 无效策略引用；
 - 策略组单行过长；
-- 本地 `NameRegex` Filter 语法错误；
+- 限定 `C2L_Nodes` 来源的 `NameRegex` Remote Filter 语法错误；
 - 自定义 Loon Base 内容；
 - `MANAGED_PLUGINS_JSON` 注入的插件行。
 
-v1.5.21 中，成功转换的节点已经直接写入 `[Proxy]`，`/loon` 不依赖 `[Remote Proxy]`。
+v1.5.24 中，`/loon` 会通过 `[Remote Proxy]` 自动加载 `C2L_Nodes = /nodes`，转换节点不再写入本地 `[Proxy]`。
 
 建议检查 `/status` 中的 `maxProxyGroupLineBytes` 与 `groupDiagnostics`。如果怀疑策略组压缩兼容性，可以直接测试：
 
@@ -69,7 +69,7 @@ v1.5.21 中，成功转换的节点已经直接写入 `[Proxy]`，`/loon` 不依
 /loon?token=YOUR_TOKEN&compact=off
 ```
 
-如果全 Inline 回退模式正常，提交问题时同时附上正常模式和 `compact=off` 的脱敏诊断信息。
+如果 `compact=off` 模式正常，提交问题时同时附上正常模式和 `compact=off` 的脱敏诊断信息。两种模式都会继续使用链接节点。
 
 ## 4. Safari 能打开 `/loon`，但 Loon 自己无法刷新
 
@@ -107,6 +107,7 @@ CONTROL_PLANE_DOMAINS=resources.example.com,=exact.example.net
 ```text
 /nodes?token=...&type=trojan
 /nodes?token=...&type=hysteria2
+/nodes?token=...&type=socks5
 /nodes?token=...&type=vless-reality
 /nodes?token=...&offset=0&limit=50
 ```
@@ -132,13 +133,13 @@ CONTROL_PLANE_DOMAINS=resources.example.com,=exact.example.net
 - `sourceMembers`：解析后的 YAML 策略组要求的成员数；
 - `resolvedMembers`：能解析到已转换节点、有效策略组、代理链或内置策略的成员数；
 - `emittedMembers`：最终写入 Loon 策略组行的引用数；
-- `compressedNodeMembers`：由本地 Filter 表示的实体节点数；
+- `compressedNodeMembers`：由 Remote Filter 表示的实体节点数；
 - `filterRefs`：该组引用的生成 Filter 数；
-- `compactionMode`：`inline` 或 `local-filter`；
+- `compactionMode`：`inline` 或 `remote-filter`；
 - `lineBytes`：生成后策略组单行的 UTF-8 字节数；
 - `missingMembers`：无法解析的 YAML 成员。
 
-小型策略组保持 Inline；超大型且顺序安全的节点段可以使用精确本地 `NameRegex` Filter；自定义排序和倒序保持 Inline。
+小型策略组直接保留节点名；超大型且顺序安全的节点段使用限定 `C2L_Nodes` 来源的精确 `NameRegex` Remote Filter；自定义排序和倒序继续直接保留节点名。
 
 Mihomo 动态策略组只会从成功转换的节点中展开，因此不支持的代理协议不会被 `include-all` 重新加入。
 
