@@ -33,28 +33,35 @@ After the Worker has been deployed, the following sequence is recommended for a 
 9. Turn Loon on, then tap [Update all external resources](https://www.nsloon.com/openloon/update?sub=all) to refresh subscriptions, rules, plugins, scripts, and other external resources in one operation.
 10. After all resources finish updating, return to the Loon dashboard and toggle Loon off and back on once so the refreshed configuration is fully reloaded.
 
-> **Clash2Loon note:** when you import the complete `/loon?token=...` configuration, successfully converted nodes are already included in `[Proxy]`. You normally do **not** need to add the generated `/nodes` URL separately; `/nodes` is retained as an optional standalone feed and diagnostic endpoint.
+> **Clash2Loon note:** the complete `/loon?token=...` configuration already defines `C2L_Nodes` in `[Remote Proxy]` and points it at the generated `/nodes` feed. Do **not** add the same `/nodes` URL again manually.
 
 > **Certificate note:** installing and trusting the MitM certificate allows enabled MitM/Rewrite/Script features to inspect supported HTTPS traffic. Only enable MitM for configurations and third-party plugins you trust.
 
 ## Node subscription
 
-`/nodes?token=YOUR_TOKEN` remains available as a standalone node feed for diagnostics, protocol isolation, or other consumers.
+`/nodes?token=YOUR_TOKEN` is the linked node feed used by the complete `/loon` configuration.
 
-When using `/loon` as the complete remote configuration, you normally do not need to add `/nodes` separately. v1.5.21 emits successfully converted nodes directly into `[Proxy]` and does not require `[Remote Proxy]`.
+v1.5.24 emits:
 
-## Why nodes are inline in the main config
+```text
+[Remote Proxy]
+C2L_Nodes = https://YOUR-WORKER/nodes?token=YOUR_TOKEN
+```
 
-Keeping nodes inline avoids runtime dependence on a second node subscription and makes static or dynamically expanded groups deterministic.
+You normally do not need to add `/nodes` manually because `/loon` already references it.
 
-To prevent very large `[Proxy Group]` lines, Clash2Loon uses hybrid compilation:
+## Why nodes are linked
+
+Linked delivery keeps converted nodes out of local `[Proxy]`. This makes node lifecycle follow the remote subscription: when an upstream node is removed and `C2L_Nodes` refreshes, that node disappears from the linked feed instead of remaining as a long-lived local node.
+
+To prevent very large `[Proxy Group]` lines, Clash2Loon still uses hybrid compilation:
 
 1. small and medium groups list concrete node names directly;
-2. oversized, order-safe node runs can use exact local `NameRegex` filters;
+2. oversized, order-safe node runs can use exact `NameRegex` Remote Filters scoped to `C2L_Nodes`;
 3. identical node sets reuse the same filters;
-4. custom or reversed ordering stays inline.
+4. custom or reversed ordering keeps direct node-name membership.
 
-If you need a compatibility baseline, append `&compact=off` to `/loon` to force all policy-group members inline.
+If you need a compatibility baseline, append `&compact=off` to `/loon`. This disables generated Remote Filters but keeps `C2L_Nodes` remote delivery enabled.
 
 ## Updating resources
 
