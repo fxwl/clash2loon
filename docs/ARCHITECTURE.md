@@ -142,20 +142,20 @@ is not a duplicate.
 
 Only completely identical effective proxy definitions are collapsed.
 
-## Inline nodes and hybrid policy-group compilation
+## Linked nodes and hybrid policy-group compilation
 
-Every successfully converted node is emitted directly into Loon `[Proxy]`. The main `/loon` configuration therefore does not depend on a `[Remote Proxy]` node subscription.
+Every successfully converted node is served by `/nodes` and loaded by Loon through `[Remote Proxy]` as `C2L_Nodes`. The main `/loon` configuration does not embed converted nodes in local `[Proxy]`.
 
 Policy groups are compiled conservatively:
 
 1. Dynamic Mihomo membership (`include-all` / `include-all-proxies`, `filter`, `exclude-filter`) is resolved against successfully converted nodes and valid proxy chains.
-2. Small and medium groups keep concrete node names inline.
-3. A group becomes eligible for compaction at 64 concrete nodes or 2048 bytes of inline member text.
+2. Small and medium groups keep concrete node names directly.
+3. A group becomes eligible for compaction at 64 concrete nodes or 2048 bytes of member text.
 4. Eligible contiguous node runs are compacted only when their order is compatible with global node order; each run must contain at least 16 nodes or 512 bytes.
-5. Exact local `NameRegex` filters are chunked and cached so repeated node sets reuse the same generated filter set.
-6. Custom or reversed node order falls back to inline membership instead of silently changing YAML semantics.
+5. Exact `NameRegex` Remote Filters are scoped to `C2L_Nodes`, chunked, and cached so repeated node sets reuse the same generated filter set.
+6. Custom or reversed node order keeps direct node-name membership instead of silently changing YAML semantics.
 
-`/nodes` remains available for diagnostics, protocol isolation, and consumers that want a standalone node feed, but it is not required by `/loon`.
+`/nodes` is now part of the normal `/loon` runtime path. Refreshing `C2L_Nodes` updates the linked node set, so upstream removals do not need to be maintained as local `[Proxy]` entries.
 
 ## Power tuning
 
