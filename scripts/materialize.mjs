@@ -130,7 +130,7 @@ function patchConverterForLoon(source) {
   source = replaceRequired(
     source,
     "      proxyGroups: groups.length, remoteFilters: compact.filterLines.length,",
-    "      proxyGroups: groups.length, remoteFilters: compact.filterLines.length, nodeDelivery: 'remote-proxy',\n      groupCompactionMode: options.groupCompaction === false ? 'remote-filter-exact' : 'remote-filter-runs',\n      groupCompactionThresholds: { members: 64, lineBytes: 2048 },\n      compressedGroups: compact.groupDiagnostics.filter(item => item.compactionMode === 'remote-filter').length,\n      maxProxyGroupLineBytes: compact.maxGroupLineBytes,\n      groupDiagnostics: compact.groupDiagnostics,",
+    "      proxyGroups: groups.length, remoteFilters: compact.filterLines.length, nodeDelivery: 'remote-proxy',\n      groupCompactionMode: options.groupCompaction === false ? 'remote-filter-exact' : 'remote-filter-runs',\n      remoteFilterChunking: { maxNames: 36, maxRegexBytes: 1200 },\n      filterBackedGroups: compact.groupDiagnostics.filter(item => item.filterRefs > 0).length,\n      compressedGroups: compact.groupDiagnostics.filter(item => item.compactionMode === 'remote-filter').length,\n      maxProxyGroupLineBytes: compact.maxGroupLineBytes,\n      groupDiagnostics: compact.groupDiagnostics,",
     'hybrid group compaction stats'
   );
 
@@ -194,4 +194,4 @@ async function joinParts(sourceDir, outputFile, count, transform = value => valu
 await joinParts('source-parts/converter', 'src/converter.js', 5, patchConverterForLoon);
 await joinParts('source-parts/index', 'src/index.js', 4, patchIndexVersion);
 
-console.log('Materialized src/converter.js and src/index.js (public v1.5.25: dynamic groups + inline nodes + hybrid local-filter compaction)');
+console.log('Materialized src/converter.js and src/index.js (public v1.5.25: dynamic groups + linked nodes + remote-filter policy membership)');
