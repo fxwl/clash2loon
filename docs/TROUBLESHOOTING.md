@@ -69,7 +69,7 @@ Use `/status` and inspect `maxProxyGroupLineBytes` plus `groupDiagnostics`. To i
 /loon?token=YOUR_TOKEN&compact=off
 ```
 
-If `compact=off` works, include the normal and `compact=off` status diagnostics when reporting the issue. Remote node delivery remains enabled in both modes.
+If `compact=off` works, include the normal and `compact=off` status diagnostics when reporting the issue. Both modes keep remote node delivery; `compact=off` switches to exact per-node filters.
 
 ## 4. `/loon` works in Safari but Loon cannot refresh it
 
@@ -139,7 +139,7 @@ Inspect `stats.groupDiagnostics` in `/status`. Useful fields are:
 - `lineBytes`: UTF-8 byte length of the generated group line;
 - `missingMembers`: unresolved YAML members.
 
-Small groups keep direct node-name membership. Large, order-safe concrete-node runs may use exact `NameRegex` Remote Filters scoped to `C2L_Nodes`. Custom/reversed ordering keeps direct node names.
+All linked policy members must be represented by exact `NameRegex` Remote Filters scoped to `C2L_Nodes`. Order-safe runs are grouped; custom/reversed order uses one exact filter per node.
 
 Mihomo dynamic groups are expanded only from successfully converted nodes, so unsupported proxy types must not be reintroduced by `include-all`.
 
