@@ -57,11 +57,11 @@ Check:
 
 - invalid policy references;
 - oversized policy-group lines;
-- malformed local `NameRegex` filter syntax;
+- malformed source-scoped `NameRegex` Remote Filter syntax;
 - custom Loon Base content;
 - plugin lines injected through `MANAGED_PLUGINS_JSON`.
 
-In v1.5.21, successfully converted nodes are already inline in `[Proxy]`; `/loon` does not depend on `[Remote Proxy]`.
+In v1.5.24, `/loon` depends on the generated `[Remote Proxy]` entry `C2L_Nodes = /nodes`; converted nodes are not embedded in local `[Proxy]`.
 
 Use `/status` and inspect `maxProxyGroupLineBytes` plus `groupDiagnostics`. To isolate group-compaction compatibility, retry with:
 
@@ -69,7 +69,7 @@ Use `/status` and inspect `maxProxyGroupLineBytes` plus `groupDiagnostics`. To i
 /loon?token=YOUR_TOKEN&compact=off
 ```
 
-If the all-inline fallback works, include the normal and `compact=off` status diagnostics when reporting the issue.
+If `compact=off` works, include the normal and `compact=off` status diagnostics when reporting the issue. Remote node delivery remains enabled in both modes.
 
 ## 4. `/loon` works in Safari but Loon cannot refresh it
 
@@ -107,6 +107,7 @@ Examples:
 ```text
 /nodes?token=...&type=trojan
 /nodes?token=...&type=hysteria2
+/nodes?token=...&type=socks5
 /nodes?token=...&type=vless-reality
 /nodes?token=...&offset=0&limit=50
 ```
@@ -132,13 +133,13 @@ Inspect `stats.groupDiagnostics` in `/status`. Useful fields are:
 - `sourceMembers`: members requested by the resolved YAML group;
 - `resolvedMembers`: members that resolve to converted nodes, valid groups, chains, or built-ins;
 - `emittedMembers`: references written to the Loon group line;
-- `compressedNodeMembers`: concrete nodes represented by local filters;
+- `compressedNodeMembers`: concrete nodes represented by source-scoped Remote Filters;
 - `filterRefs`: generated filter references used by the group;
-- `compactionMode`: `inline` or `local-filter`;
+- `compactionMode`: `inline` or `remote-filter`;
 - `lineBytes`: UTF-8 byte length of the generated group line;
 - `missingMembers`: unresolved YAML members.
 
-Small groups stay inline. Large, order-safe concrete-node runs may use exact local `NameRegex` filters. Custom/reversed ordering stays inline.
+Small groups keep direct node-name membership. Large, order-safe concrete-node runs may use exact `NameRegex` Remote Filters scoped to `C2L_Nodes`. Custom/reversed ordering keeps direct node names.
 
 Mihomo dynamic groups are expanded only from successfully converted nodes, so unsupported proxy types must not be reintroduced by `include-all`.
 
