@@ -13,12 +13,12 @@
 - `dialer-proxy` → Loon Proxy Chain，包括 SOCKS5 落地节点
 - Clash / Mihomo Proxy Group → Loon Policy Group
 - Mihomo 动态策略组：`include-all` / `include-all-proxies`、`filter`、`exclude-filter`
-- 完整 `/loon` 配置中的 Inline `[Proxy]` 节点
-- 使用精确本地 `NameRegex` Filter 的大策略组混合压缩
+- 通过 `C2L_Nodes = /nodes` 加载的 `[Remote Proxy]` 链接节点
+- 使用限定 `C2L_Nodes` 来源的精确 `NameRegex` Remote Filter 进行大策略组混合压缩
 - 自定义/倒序策略组的顺序安全回退
-- `compact=off` 全 Inline 兼容模式
+- `compact=off` 关闭 Remote Filter 压缩但继续使用链接节点的兼容模式
 - 策略组压缩与单行字节数诊断
-- 稳定的独立 `/nodes` 输出
+- 稳定的 `/nodes` 输出，并作为链接节点订阅源
 - Rule Provider 转换与 Worker 托管远程规则
 - 精确节点定义去重
 - `url-test` 策略组可配置功耗档位
@@ -39,10 +39,10 @@ npm run test:regression
 回归套件检查：
 
 - Base / Clash 区段归属规则；
-- 小型 Inline 策略组与 YAML 原始成员顺序；
+- 小型策略组直接保留节点名并保持 YAML 原始成员顺序；
 - 192 节点混合压缩与 Filter 复用；
-- 自定义/倒序策略组保持 Inline；
-- `compact=off` 全 Inline 回退；
+- 自定义/倒序策略组保持直接节点名引用；
+- `compact=off` 关闭 Remote Filter 压缩后的回退；
 - Mihomo 动态策略组展开及不支持节点排除；
 - 节点去重；
 - SOCKS5 转换与 SOCKS5 `dialer-proxy` 中转链生成；
