@@ -38,8 +38,8 @@ const out = convertClashToLoon(clash, {
   powerProfile: 'battery'
 });
 
-assert.equal(out.stats.nodeDelivery, 'inline');
-assert.equal(out.stats.groupCompactionMode, 'hybrid-local-filter');
+assert.equal(out.stats.nodeDelivery, 'remote-proxy');
+assert.equal(out.stats.groupCompactionMode, 'hybrid-remote-filter');
 assert.deepEqual(out.stats.groupCompactionThresholds, { members: 64, lineBytes: 2048 });
 assert.equal(out.stats.compressedGroups, 3);
 assert.equal(out.stats.uniqueNodeSets, 1);
@@ -47,18 +47,21 @@ assert.equal(out.stats.remoteFilters, 6);
 assert.equal(out.stats.compressedNodeReferences, 192 * 3);
 
 assert.ok(out.config.includes('[Remote Filter]'));
-assert.ok(!out.config.includes('[Remote Proxy]'));
+assert.ok(out.config.includes('[Remote Proxy]'));
+assert.ok(out.config.includes('C2L_Nodes = https://example.workers.dev/nodes?token=TEST_TOKEN'));
 
 const filterLines = out.config.split('\n').filter(line => line.startsWith('C2L_NodeSet_'));
 assert.equal(filterLines.length, 6);
 for (const line of filterLines) {
-  assert.match(line, /^C2L_NodeSet_[a-f0-9]+_\d+ = NameRegex,FilterKey="/);
-  assert.ok(!line.includes('C2L_Nodes'));
+  assert.match(line, /^C2L_NodeSet_[a-f0-9]+_\d+ = NameRegex,C2L_Nodes,FilterKey="/);
+  assert.ok(line.includes('C2L_Nodes'));
+
   assert.ok(new TextEncoder().encode(line).length < 1400);
 }
 
 for (const name of names) {
-  assert.ok(out.config.includes(`${name} = trojan,`), `[Proxy] lost ${name}`);
+  assert.ok(out.nodes.includes(`${name} = trojan,`), `/nodes lost ${name}`);
+  assert.ok(!out.config.includes(`${name} = trojan,`), `main config unexpectedly inlined ${name}`);
 }
 
 function diagnostic(name) {
@@ -69,7 +72,7 @@ function diagnostic(name) {
 
 for (const name of ['Main Select', 'Auto', 'AI']) {
   const item = diagnostic(name);
-  assert.equal(item.compactionMode, 'local-filter');
+  assert.equal(item.compactionMode, 'remote-filter');
   assert.equal(item.compressedNodeMembers, 192);
   assert.equal(item.filterRefs, 6);
   assert.ok(item.lineBytes < 512);
@@ -98,7 +101,8 @@ assert.equal(fallback.stats.groupCompactionMode, 'inline-fallback');
 assert.equal(fallback.stats.compressedGroups, 0);
 assert.equal(fallback.stats.remoteFilters, 0);
 assert.ok(!fallback.config.includes('[Remote Filter]'));
-assert.ok(!fallback.config.includes('[Remote Proxy]'));
+assert.ok(fallback.config.includes('[Remote Proxy]'));
+assert.equal(fallback.stats.nodeDelivery, 'remote-proxy');
 const fallbackMain = fallback.config.split('\n').find(line => line.startsWith('Main Select = select,'));
 assert.ok(fallbackMain);
 for (const name of names) assert.ok(fallbackMain.includes(name));
