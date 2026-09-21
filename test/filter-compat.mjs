@@ -39,9 +39,9 @@ const out = convertClashToLoon(clash, {
 });
 
 assert.ok(out.config.includes('[Remote Proxy]'));
-assert.ok(!out.config.includes('[Remote Filter]'));
+assert.ok(out.config.includes('[Remote Filter]'));
 assert.equal(out.stats.nodeDelivery, 'remote-proxy');
-assert.equal(out.stats.remoteFilters, 0);
+assert.ok(out.stats.remoteFilters > 0);
 
 for (const name of names) {
   assert.ok(out.nodes.includes(`${name} = trojan,`), `/nodes lost linked node: ${name}`);
@@ -49,12 +49,19 @@ for (const name of names) {
 }
 
 const selectLine = out.config.split('\n').find(v => v.startsWith('Main Proxy = select,'));
-assert.equal(selectLine, `Main Proxy = select,Auto,Low Rate,Budget,${names.join(',')}`);
+assert.ok(selectLine?.startsWith('Main Proxy = select,Auto,Low Rate,Budget,C2L_NodeSet_'));
 
 for (const groupName of ['Auto', 'Budget', 'Low Rate']) {
   const line = out.config.split('\n').find(v => v.startsWith(`${groupName} = `));
   assert.ok(line, `missing group: ${groupName}`);
-  assert.ok(line.includes(names[0]));
+  assert.ok(line.includes('C2L_NodeSet_'), `group ${groupName} must consume linked nodes through Remote Filter`);
+  for (const name of names) assert.ok(!line.includes(name), `group ${groupName} must not reference remote node names directly`);
+}
+
+const remoteFilters = out.config.split('\n').filter(line => line.startsWith('C2L_NodeSet_'));
+assert.equal(remoteFilters.length, out.stats.remoteFilters);
+for (const line of remoteFilters) {
+  assert.match(line, /^C2L_NodeSet_[a-f0-9]+_\d+ = NameRegex,C2L_Nodes,FilterKey="/);
 }
 
 assert.equal(out.stats.powerProfile, 'battery');

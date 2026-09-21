@@ -84,12 +84,16 @@ assert.equal(
 );
 
 const mainLine = out.config.split('\n').find(line => line.startsWith('Main = select,'));
-assert.equal(mainLine, `Main = select,${chainedSocks},${directSocks},${transitGroup}`);
+assert.ok(mainLine?.startsWith(`Main = select,${chainedSocks},C2L_NodeSet_`));
+assert.ok(mainLine.endsWith(`,${transitGroup}`));
+assert.ok(!mainLine.includes(directSocks));
 
 assert.ok(out.config.includes('[Remote Proxy]'));
 assert.ok(out.config.includes('C2L_Nodes = https://example.workers.dev/nodes?token=TEST_TOKEN'));
 assert.ok(!out.config.includes(`${directSocks} = socks5,`));
 assert.ok(!out.config.includes(`${landingName} = socks5,`));
+assert.ok(out.config.includes('[Remote Filter]'));
+assert.ok(out.stats.remoteFilters > 0);
 assert.equal(out.stats.nodeDelivery, 'remote-proxy');
 assert.equal(out.stats.proxyChains, 1);
 assert.equal(out.stats.nodeTypes.socks5, 2);

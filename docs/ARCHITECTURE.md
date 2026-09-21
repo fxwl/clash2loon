@@ -149,11 +149,11 @@ Every successfully converted node is served by `/nodes` and loaded by Loon throu
 Policy groups are compiled conservatively:
 
 1. Dynamic Mihomo membership (`include-all` / `include-all-proxies`, `filter`, `exclude-filter`) is resolved against successfully converted nodes and valid proxy chains.
-2. Small and medium groups keep concrete node names directly.
-3. A group becomes eligible for compaction at 64 concrete nodes or 2048 bytes of member text.
-4. Eligible contiguous node runs are compacted only when their order is compatible with global node order; each run must contain at least 16 nodes or 512 bytes.
+2. Every linked node referenced by a policy group is represented by a source-scoped exact `NameRegex` Remote Filter.
+3. Order-safe contiguous node runs are grouped into chunked Remote Filters to reduce configuration size.
+4. If a run is not compatible with global node order, each node receives its own exact filter so YAML ordering is preserved.
 5. Exact `NameRegex` Remote Filters are scoped to `C2L_Nodes`, chunked, and cached so repeated node sets reuse the same generated filter set.
-6. Custom or reversed node order keeps direct node-name membership instead of silently changing YAML semantics.
+6. `compact=off` forces the exact-per-node filter path while retaining `C2L_Nodes` remote delivery.
 
 `/nodes` is now part of the normal `/loon` runtime path. Refreshing `C2L_Nodes` updates the linked node set, so upstream removals do not need to be maintained as local `[Proxy]` entries.
 

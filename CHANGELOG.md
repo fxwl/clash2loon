@@ -14,6 +14,16 @@ This project follows a pragmatic versioning model while the converter is still e
 - Improve documentation for additional Loon-native base configurations.
 - Continue conservative protocol support without guessing undocumented Loon behavior.
 
+## [1.5.25] - 2026-09-21
+
+### Fixed
+
+- Fix linked nodes being visible under `C2L_Nodes` but missing from policy groups after v1.5.24.
+- Every subscription node referenced by a policy group now enters through a source-scoped exact `NameRegex` Remote Filter.
+- Order-safe contiguous node runs are grouped into chunked filters; custom or reversed order falls back to one exact filter per node.
+- `compact=off` now means exact per-node Remote Filters rather than direct remote-node names.
+- Keep v1.5.24 linked node lifecycle, SOCKS5, `dialer-proxy` chains, dynamic groups, exact deduplication, and power profiles intact.
+
 ## [1.5.24] - 2026-09-21
 
 ### Changed

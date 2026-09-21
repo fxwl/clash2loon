@@ -56,12 +56,12 @@ Linked delivery keeps converted nodes out of local `[Proxy]`. This makes node li
 
 To prevent very large `[Proxy Group]` lines, Clash2Loon still uses hybrid compilation:
 
-1. small and medium groups list concrete node names directly;
-2. oversized, order-safe node runs can use exact `NameRegex` Remote Filters scoped to `C2L_Nodes`;
+1. all linked nodes used by policy groups are referenced through exact Remote Filters;
+2. order-safe contiguous node runs are grouped into chunked `NameRegex` Remote Filters scoped to `C2L_Nodes`;
 3. identical node sets reuse the same filters;
-4. custom or reversed ordering keeps direct node-name membership.
+4. custom or reversed ordering falls back to one exact filter per node.
 
-If you need a compatibility baseline, append `&compact=off` to `/loon`. This disables generated Remote Filters but keeps `C2L_Nodes` remote delivery enabled.
+If you need a compatibility baseline, append `&compact=off` to `/loon`. This keeps `C2L_Nodes` remote delivery and uses one exact Remote Filter per linked node instead of grouped runs.
 
 ## Updating resources
 

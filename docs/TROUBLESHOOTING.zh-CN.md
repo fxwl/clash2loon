@@ -69,7 +69,7 @@ v1.5.24 中，`/loon` 会通过 `[Remote Proxy]` 自动加载 `C2L_Nodes = /node
 /loon?token=YOUR_TOKEN&compact=off
 ```
 
-如果 `compact=off` 模式正常，提交问题时同时附上正常模式和 `compact=off` 的脱敏诊断信息。两种模式都会继续使用链接节点。
+如果 `compact=off` 模式正常，提交问题时同时附上正常模式和 `compact=off` 的脱敏诊断信息。两种模式都会继续使用链接节点；`compact=off` 会改为逐节点精确 Filter。
 
 ## 4. Safari 能打开 `/loon`，但 Loon 自己无法刷新
 
@@ -139,7 +139,7 @@ CONTROL_PLANE_DOMAINS=resources.example.com,=exact.example.net
 - `lineBytes`：生成后策略组单行的 UTF-8 字节数；
 - `missingMembers`：无法解析的 YAML 成员。
 
-小型策略组直接保留节点名；超大型且顺序安全的节点段使用限定 `C2L_Nodes` 来源的精确 `NameRegex` Remote Filter；自定义排序和倒序继续直接保留节点名。
+所有链接节点策略成员都必须通过限定 `C2L_Nodes` 来源的精确 `NameRegex` Remote Filter 表示。顺序安全的节点段会合并，自定义/倒序则使用逐节点精确 Filter。
 
 Mihomo 动态策略组只会从成功转换的节点中展开，因此不支持的代理协议不会被 `include-all` 重新加入。
 

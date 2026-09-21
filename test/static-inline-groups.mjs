@@ -40,26 +40,27 @@ assert.ok(groupLine);
 for (const name of names) {
   assert.ok(out.nodes.includes(`${name} = trojan,`), `/nodes lost ${name}`);
   assert.ok(!out.config.includes(`${name} = trojan,`), `main config unexpectedly inlined ${name}`);
-  assert.ok(groupLine.includes(name), `small group lost ${name}`);
+  assert.ok(!groupLine.includes(name), `small linked group must not reference remote node name directly: ${name}`);
 }
 
 assert.ok(out.config.includes('[Remote Proxy]'));
 assert.ok(out.config.includes('C2L_Nodes = https://example.workers.dev/nodes?token=TEST_TOKEN'));
-assert.ok(!out.config.includes('[Remote Filter]'));
+assert.ok(out.config.includes('[Remote Filter]'));
 assert.equal(out.stats.nodeDelivery, 'remote-proxy');
-assert.equal(out.stats.remoteFilters, 0);
+assert.ok(out.stats.remoteFilters > 0);
 
 const diagnostic = out.stats.groupDiagnostics.find(item => item.name === 'Taiwan Home');
 assert.ok(diagnostic);
 assert.equal(diagnostic.sourceMembers, 33);
 assert.equal(diagnostic.resolvedMembers, 33);
-assert.equal(diagnostic.emittedMembers, 33);
-assert.equal(diagnostic.compressedNodeMembers, 0);
-assert.equal(diagnostic.filterRefs, 0);
-assert.equal(diagnostic.compactionMode, 'inline');
+assert.ok(diagnostic.emittedMembers >= 1 && diagnostic.emittedMembers < 33);
+assert.equal(diagnostic.compressedNodeMembers, 33);
+assert.ok(diagnostic.filterRefs >= 1);
+assert.equal(diagnostic.compactionMode, 'remote-filter');
 assert.equal(diagnostic.missingMembers.length, 0);
 assert.equal(diagnostic.lineBytes, new TextEncoder().encode(groupLine).length);
-assert.ok(diagnostic.lineBytes < 2048);
+assert.ok(diagnostic.lineBytes < 1024);
+assert.ok(groupLine.includes('C2L_NodeSet_'));
 assert.match(groupLine, /interval=10800/);
 
 console.log(JSON.stringify({
