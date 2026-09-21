@@ -14,13 +14,15 @@ const out = convertClashToLoon(clash, {
 });
 
 const mustContain = [
-  '[General]', '[Proxy]', '[Proxy Chain]', '[Proxy Group]', '[Rule]', '[Remote Rule]',
+  '[General]', '[Proxy]', '[Remote Proxy]', '[Proxy Chain]', '[Proxy Group]', '[Rule]', '[Remote Rule]',
   'FINAL,'
 ];
 for (const needle of mustContain) {
   if (!out.config.includes(needle)) throw new Error(`Generated config missing ${needle}`);
 }
 if (out.stats.convertedNodes <= 0) throw new Error('No supported nodes were converted.');
+if (!out.nodes.trim()) throw new Error('Linked /nodes output is empty.');
+if (out.stats.nodeDelivery !== 'remote-proxy') throw new Error('Expected remote-proxy node delivery.');
 
 console.log(JSON.stringify({
   ok: true,
