@@ -56,12 +56,12 @@ C2L_Nodes = https://YOUR-WORKER/nodes?token=YOUR_TOKEN
 
 为了避免超大型 `[Proxy Group]` 单行过长，Clash2Loon 继续使用混合编译：
 
-1. 小型和中型策略组直接列真实节点名；
-2. 超大型且顺序安全的连续节点段使用限定 `C2L_Nodes` 来源的精确 `NameRegex` Remote Filter；
+1. 策略组中使用的所有链接节点都通过精确 Remote Filter 引用；
+2. 顺序安全的连续节点段会合并并分块为限定 `C2L_Nodes` 来源的精确 `NameRegex` Remote Filter；
 3. 相同节点集合复用同一套 Filter；
-4. 自定义排序或倒序继续直接保留节点名。
+4. 自定义排序或倒序会退化为逐节点精确 Filter。
 
-如需兼容性基线，可在 `/loon` 后追加 `&compact=off`。它只关闭 Remote Filter 压缩，不会关闭 `C2L_Nodes` 链接节点。
+如需兼容性基线，可在 `/loon` 后追加 `&compact=off`。它会保留 `C2L_Nodes` 链接节点，并改成每个链接节点一个精确 Remote Filter。
 
 ## 更新外部资源
 
