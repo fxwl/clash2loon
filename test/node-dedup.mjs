@@ -34,19 +34,23 @@ assert.ok(!nodeLines.some(line => line.startsWith('US-B = trojan,')));
 assert.ok(nodeLines.some(line => line.startsWith('US-C = trojan,')));
 
 const manual = out.config.split('\n').find(line => line.startsWith('Manual = select,'));
-assert.equal(manual, 'Manual = select,US-A,US-C');
+assert.ok(manual?.startsWith('Manual = select,C2L_NodeSet_'));
+assert.ok(!manual.includes('US-A'));
+assert.ok(!manual.includes('US-C'));
 
 const auto = out.config.split('\n').find(line => line.startsWith('Auto = url-test,'));
-assert.ok(auto?.startsWith('Auto = url-test,US-A,US-C,'));
+assert.ok(auto?.startsWith('Auto = url-test,C2L_NodeSet_'));
+assert.ok(!auto.includes('US-A'));
+assert.ok(!auto.includes('US-C'));
 assert.match(auto, /interval=10800/);
 
 assert.ok(!out.config.includes('US-A = trojan,'));
 assert.ok(!out.config.includes('US-C = trojan,'));
 assert.ok(!out.config.includes('US-B = trojan,'));
 assert.ok(out.config.includes('[Remote Proxy]'));
-assert.ok(!out.config.includes('[Remote Filter]'));
+assert.ok(out.config.includes('[Remote Filter]'));
 assert.equal(out.stats.nodeDelivery, 'remote-proxy');
-assert.equal(out.stats.remoteFilters, 0);
+assert.ok(out.stats.remoteFilters > 0);
 
 console.log(JSON.stringify({
   ok: true,
