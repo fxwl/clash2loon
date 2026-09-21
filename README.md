@@ -24,7 +24,7 @@ If you are looking for **Loon plugins**, visit [ProxyResource](https://github.co
 - Support VLESS, VLESS Reality, VLESS WebSocket, Trojan, Hysteria2, and SOCKS5 (`socks` / `socks5`).
 - Convert `dialer-proxy` relationships into Loon Proxy Chains, including SOCKS5 landing nodes.
 - Preserve YAML-defined nodes, policy groups, rules, Rule Providers, and MATCH / FINAL semantics.
-- Keep successfully converted nodes inline in Loon `[Proxy]`; small and medium groups stay inline, while oversized order-safe node runs are compacted through exact local `NameRegex` filters.
+- Deliver successfully converted nodes through the linked `C2L_Nodes` `[Remote Proxy]` subscription backed by `/nodes`; small and medium groups reference node names directly, while oversized order-safe runs are compacted through source-scoped `NameRegex` Remote Filters.
 - Expand Mihomo dynamic groups using `include-all` / `include-all-proxies`, `filter`, and `exclude-filter` over successfully converted nodes.
 - Provide per-group `/status` diagnostics plus a `?compact=off` compatibility fallback.
 - Deduplicate only nodes whose effective definitions are exactly identical, then repair group references automatically.
@@ -178,22 +178,23 @@ Authorization: Bearer YOUR_TOKEN
 
 ## Hybrid Group Compilation
 
-v1.5.21 uses a hybrid compiler for policy-group membership:
+v1.5.24 uses linked node delivery with hybrid policy-group membership:
 
-- successfully converted nodes are emitted directly into `[Proxy]`;
-- groups with fewer than 64 concrete nodes and shorter than 2048 member bytes stay fully inline;
-- oversized, order-safe node runs are replaced with exact local `NameRegex` filter references;
+- successfully converted nodes are served by `/nodes` and loaded by Loon through `[Remote Proxy]` as `C2L_Nodes`;
+- the main `/loon` configuration no longer embeds converted nodes in local `[Proxy]`;
+- groups with fewer than 64 concrete nodes and shorter than 2048 member bytes keep concrete node names directly;
+- oversized, order-safe node runs are replaced with exact `NameRegex` Remote Filters scoped to `C2L_Nodes`;
 - repeated node sets reuse the same generated filters;
-- custom or reversed node ordering stays inline instead of being reordered;
-- `/nodes` remains available for diagnostics and isolated node feeds, but `/loon` no longer depends on a `[Remote Proxy]` subscription.
+- custom or reversed node ordering stays direct instead of being reordered;
+- removing a node upstream removes it from the linked `/nodes` feed on refresh, avoiding long-lived local-node accumulation.
 
-For compatibility testing, disable group compaction per request:
+For compatibility testing, disable policy-group filter compaction per request:
 
 ```text
 https://YOUR-WORKER/loon?token=YOUR_TOKEN&compact=off
 ```
 
-The same parameter can be used with `/status` to inspect the all-inline fallback.
+The same parameter can be used with `/status`. It keeps `C2L_Nodes` remote delivery enabled and only disables generated Remote Filters.
 
 ## Power Profiles
 
@@ -304,7 +305,7 @@ Do not commit your real test YAML.
 
 ## Known Limitations
 
-- The converter intentionally does not attempt to support every Clash protocol. The current focus is VLESS, Trojan, and Hysteria2.
+- The converter intentionally does not attempt to support every Clash protocol. The current focus is VLESS, Trojan, Hysteria2, and SOCKS5.
 - Some Mihomo-specific fields have no one-to-one Loon equivalent and are omitted with warnings.
 - Desktop-only rules such as `PROCESS-NAME` are not force-mapped to iOS.
 - Binary `.mrs` Rule Providers can only be converted when a known text sibling can be derived.
