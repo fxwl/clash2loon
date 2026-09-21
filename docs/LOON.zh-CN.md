@@ -28,33 +28,40 @@ Worker 部署完成后，建议按下面顺序完成新设备上的 Loon 初始�
 4. 打开 Loon 中 **MitM、脚本、复写** 三个功能开关。
 5. 进入 **MitM**，打开 **MitM over HTTP/2** 和 **QUIC 回退保护**。
 6. 确保 **Safari 是系统默认浏览器**，然后安装 Loon CA 证书，并在 iOS 设置中完成证书信任。
-7. 按自己的 Loon 使用方式添加所需订阅。对于 Clash2Loon 完整 `/loon?token=...` 配置，请特别注意下面的说明，通常不需要再次手工添加生成的 `/nodes` 地址。
+7. Clash2Loon 完整 `/loon?token=...` 配置已经自动引用生成的 `/nodes` 节点订阅，通常不需要再手工添加同一地址。
 8. 点击 Loon 底部导航栏的 **配置** → 右上角 **⋯** → 打开 **始终开启**。
 9. 打开 Loon 总开关后，点击 [一键更新所有外部资源](https://www.nsloon.com/openloon/update?sub=all)，统一更新订阅、规则、插件、脚本及其他外部资源。
 10. 等待所有资源更新完成后，回到仪表界面，将 Loon 总开关关闭再重新打开一次，使新的配置和资源完整重新加载。
 
-> **Clash2Loon 特别说明：**完整 `/loon?token=...` 配置已经在 `[Proxy]` 中包含所有成功转换的节点。正常情况下不需要再手工添加生成的 `/nodes` 地址；`/nodes` 仅作为可选的独立节点订阅和诊断接口保留。
+> **Clash2Loon 特别说明：**完整 `/loon?token=...` 配置会在 `[Remote Proxy]` 中自动定义 `C2L_Nodes` 并指向生成的 `/nodes`。正常情况下不要再手工重复添加同一 `/nodes` 地址。
 
 > **证书安全说明：**安装并信任 MitM 证书后，已启用的 MitM / Rewrite / Script 能够检查受支持的 HTTPS 流量。只应对你信任的配置和第三方插件启用 MitM。
 
 ## 节点订阅
 
-`/nodes?token=YOUR_TOKEN` 仍然保留，可作为独立节点订阅，用于诊断、协议隔离或其他客户端消费。
+`/nodes?token=YOUR_TOKEN` 现在是完整 `/loon` 配置使用的链接节点源。
 
-当你使用 `/loon` 作为完整远程配置时，通常不需要再手工添加 `/nodes`。v1.5.21 会把成功转换的节点直接写入 `[Proxy]`，不再依赖 `[Remote Proxy]`。
+v1.5.24 会生成：
 
-## 为什么节点现在直接写入主配置
+```text
+[Remote Proxy]
+C2L_Nodes = https://YOUR-WORKER/nodes?token=YOUR_TOKEN
+```
 
-节点 Inline 可以避免主配置在运行时依赖第二份节点订阅，也能让静态策略组和动态展开策略组的成员更加确定。
+因此通常不需要手工再添加一次 `/nodes`。
 
-为了避免超大型 `[Proxy Group]` 单行过长，Clash2Loon 使用混合编译：
+## 为什么改回链接节点
+
+链接节点可以把转换后的节点从本地 `[Proxy]` 中移出去。以后上游删除节点并刷新 `C2L_Nodes` 后，该节点会从链接订阅中同步消失，不需要继续逐个清理本地残留。
+
+为了避免超大型 `[Proxy Group]` 单行过长，Clash2Loon 继续使用混合编译：
 
 1. 小型和中型策略组直接列真实节点名；
-2. 超大型且顺序安全的连续节点段可以使用精确本地 `NameRegex` Filter；
+2. 超大型且顺序安全的连续节点段使用限定 `C2L_Nodes` 来源的精确 `NameRegex` Remote Filter；
 3. 相同节点集合复用同一套 Filter；
-4. 自定义排序或倒序保持 Inline。
+4. 自定义排序或倒序继续直接保留节点名。
 
-如需兼容性基线，可在 `/loon` 后追加 `&compact=off`，强制所有策略组成员使用 Inline。
+如需兼容性基线，可在 `/loon` 后追加 `&compact=off`。它只关闭 Remote Filter 压缩，不会关闭 `C2L_Nodes` 链接节点。
 
 ## 更新外部资源
 
