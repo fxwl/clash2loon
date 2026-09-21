@@ -9,9 +9,9 @@ function replaceRequired(source, from, to, label) {
 }
 
 function patchConverterForLoon(source) {
-  // Loon node filters can classify local [Proxy] nodes as well as subscription
-  // nodes. v1.5.23 therefore keeps nodes inline and uses unscoped NameRegex
-  // filters only to compact very large proxy-group member lists.
+  // v1.5.24 delivers converted nodes through /nodes as a Loon Remote Proxy
+  // subscription. Large policy groups use source-scoped NameRegex filters so
+  // removed upstream nodes disappear with the linked subscription refresh.
   source = replaceRequired(
     source,
     'function fnv1a(text) {',
@@ -27,8 +27,8 @@ function patchConverterForLoon(source) {
   source = replaceRequired(
     source,
     'filterLines.push(`${filterName} = NameRegex,${sourceAlias}, FilterKey = ${q(regex)}`);',
-    'filterLines.push(`${filterName} = NameRegex,FilterKey=${qRegex(regex)}`);',
-    'unscoped local NameRegex filters and regex quoting'
+    'filterLines.push(`${filterName} = NameRegex,${sourceAlias},FilterKey=${qRegex(regex)}`);',
+    'source-scoped remote NameRegex filters and regex quoting'
   );
   source = replaceRequired(
     source,
@@ -67,9 +67,9 @@ function patchConverterForLoon(source) {
     'regular node order map'
   );
 
-  // v1.5.23 hybrid compaction keeps small groups inline and compacts only
-  // large, order-safe runs of local nodes through exact NameRegex filters.
-  // v1.5.23 inline membership semantics.
+  // v1.5.24 hybrid compaction keeps small groups inline and compacts only
+  // large, order-safe runs of remote nodes through exact NameRegex filters.
+  // v1.5.24 inline membership semantics.
   source = replaceRequired(
     source,
     "  const dynamicGroupExpansions = [];\n  let compressedNodeReferences = 0;",
@@ -84,13 +84,13 @@ function patchConverterForLoon(source) {
     source,
     "    const nodeMembers = raw.filter(m => regularNodes.has(m));\n    const nodeSet = new Set(nodeMembers);\n    const filterNames = filtersFor(nodeMembers);\n    compressedNodeReferences += nodeMembers.length;\n\n    const members = [];\n    let insertedFilters = false;\n    for (const member of raw) {\n      if (nodeSet.has(member)) {\n        if (!insertedFilters) {\n          members.push(...filterNames);\n          insertedFilters = true;\n        }\n        continue;\n      }\n      members.push(member);\n    }\n    if (!insertedFilters && filterNames.length) members.push(...filterNames);",
     "    const nodeMembers = raw.filter(m => regularNodes.has(m));\n    const validMembers = raw.filter(m =>\n      regularNodes.has(m) || BUILTIN_POLICIES.has(m) || groupNames.has(m) || chains.has(m)\n    );\n    const missingMembers = raw.filter(m =>\n      !regularNodes.has(m) && !BUILTIN_POLICIES.has(m) && !groupNames.has(m) && !chains.has(m)\n    );\n    const inlineMemberBytes = new TextEncoder().encode(validMembers.join(',')).length;\n    const shouldCompactGroup = enableGroupCompaction && (nodeMembers.length >= 64 || inlineMemberBytes >= 2048);\n    let compressedNodeMembers = 0;\n    let filterRefs = 0;\n    const members = [];\n    let pendingNodes = [];\n    const flushPendingNodes = () => {\n      if (!pendingNodes.length) return;\n      const runBytes = new TextEncoder().encode(pendingNodes.join(',')).length;\n      let previousIndex = -1;\n      const orderSafe = pendingNodes.every(nodeName => {\n        const index = regularNodeOrder.get(nodeName);\n        if (index == null || index <= previousIndex) return false;\n        previousIndex = index;\n        return true;\n      });\n      const shouldCompactRun = shouldCompactGroup && orderSafe && (pendingNodes.length >= 16 || runBytes >= 512);\n      if (shouldCompactRun) {\n        const refs = filtersFor(pendingNodes);\n        members.push(...refs);\n        compressedNodeMembers += pendingNodes.length;\n        filterRefs += refs.length;\n      } else {\n        members.push(...pendingNodes);\n      }\n      pendingNodes = [];\n    };\n    for (const member of validMembers) {\n      if (regularNodes.has(member)) {\n        pendingNodes.push(member);\n        continue;\n      }\n      flushPendingNodes();\n      members.push(member);\n    }\n    flushPendingNodes();\n    compressedNodeReferences += compressedNodeMembers;",
-    'hybrid local-filter compaction while preserving YAML order'
+    'hybrid remote-filter compaction while preserving YAML order'
   );
 
   source = replaceRequired(
     source,
     "    } else {\n      warnings.push({ code: 'GROUP_TYPE_DOWNGRADED', group: name, detail: `Unsupported group type ${group.type}; emitted as select.` });\n      lines.push(`${name} = select,${members.join(',')}`);\n    }\n  }\n  return {\n    groupLines: lines,\n    filterLines,",
-    "    } else {\n      warnings.push({ code: 'GROUP_TYPE_DOWNGRADED', group: name, detail: `Unsupported group type ${group.type}; emitted as select.` });\n      lines.push(`${name} = select,${members.join(',')}`);\n    }\n    const emittedLine = lines[lines.length - 1] || '';\n    groupDiagnostics.push({\n      name,\n      type: cleanName(group.type) || 'select',\n      sourceMembers: raw.length,\n      resolvedMembers: validMembers.length,\n      emittedMembers: members.length,\n      compressedNodeMembers,\n      filterRefs,\n      compactionMode: compressedNodeMembers > 0 ? 'local-filter' : 'inline',\n      lineBytes: new TextEncoder().encode(emittedLine).length,\n      missingMembers\n    });\n  }\n  return {\n    groupLines: lines,\n    filterLines,\n    groupDiagnostics,\n    maxGroupLineBytes: Math.max(0, ...groupDiagnostics.map(item => item.lineBytes)),",
+    "    } else {\n      warnings.push({ code: 'GROUP_TYPE_DOWNGRADED', group: name, detail: `Unsupported group type ${group.type}; emitted as select.` });\n      lines.push(`${name} = select,${members.join(',')}`);\n    }\n    const emittedLine = lines[lines.length - 1] || '';\n    groupDiagnostics.push({\n      name,\n      type: cleanName(group.type) || 'select',\n      sourceMembers: raw.length,\n      resolvedMembers: validMembers.length,\n      emittedMembers: members.length,\n      compressedNodeMembers,\n      filterRefs,\n      compactionMode: compressedNodeMembers > 0 ? 'remote-filter' : 'inline',\n      lineBytes: new TextEncoder().encode(emittedLine).length,\n      missingMembers\n    });\n  }\n  return {\n    groupLines: lines,\n    filterLines,\n    groupDiagnostics,\n    maxGroupLineBytes: Math.max(0, ...groupDiagnostics.map(item => item.lineBytes)),",
     'proxy-group diagnostics'
   );
 
@@ -118,18 +118,18 @@ function patchConverterForLoon(source) {
     'deduplication stats'
   );
 
-  // Inline converted nodes into [Proxy]. This removes Remote Proxy / Remote
-  // Filter runtime dependencies while preserving YAML group membership exactly.
+  // Deliver converted nodes through /nodes as a linked Loon subscription.
+  // [Proxy] stays empty so the main configuration no longer accumulates local nodes.
   source = replaceRequired(
     source,
     "    '[Proxy]', '',\n    '[Remote Proxy]', `${nodeSourceAlias} = ${nodesUrl}`, '',\n    '[Remote Filter]', ...compact.filterLines, '',\n    '[Proxy Group]', ...compact.groupLines, '',",
-    "    '[Proxy]', ...nodeOnlyLines, '',\n    ...(compact.filterLines.length ? ['[Remote Filter]', ...compact.filterLines, ''] : []),\n    '[Proxy Group]', ...compact.groupLines, '',",
-    'inline nodes with optional local-filter compaction'
+    "    '[Proxy]', '',\n    '[Remote Proxy]', `${nodeSourceAlias} = ${nodesUrl}`, '',\n    ...(compact.filterLines.length ? ['[Remote Filter]', ...compact.filterLines, ''] : []),\n    '[Proxy Group]', ...compact.groupLines, '',",
+    'remote node delivery with optional source-scoped filters'
   );
   source = replaceRequired(
     source,
     "      proxyGroups: groups.length, remoteFilters: compact.filterLines.length,",
-    "      proxyGroups: groups.length, remoteFilters: compact.filterLines.length, nodeDelivery: 'inline',\n      groupCompactionMode: options.groupCompaction === false ? 'inline-fallback' : 'hybrid-local-filter',\n      groupCompactionThresholds: { members: 64, lineBytes: 2048 },\n      compressedGroups: compact.groupDiagnostics.filter(item => item.compactionMode === 'local-filter').length,\n      maxProxyGroupLineBytes: compact.maxGroupLineBytes,\n      groupDiagnostics: compact.groupDiagnostics,",
+    "      proxyGroups: groups.length, remoteFilters: compact.filterLines.length, nodeDelivery: 'remote-proxy',\n      groupCompactionMode: options.groupCompaction === false ? 'inline-fallback' : 'hybrid-remote-filter',\n      groupCompactionThresholds: { members: 64, lineBytes: 2048 },\n      compressedGroups: compact.groupDiagnostics.filter(item => item.compactionMode === 'remote-filter').length,\n      maxProxyGroupLineBytes: compact.maxGroupLineBytes,\n      groupDiagnostics: compact.groupDiagnostics,",
     'hybrid group compaction stats'
   );
 
@@ -137,20 +137,20 @@ function patchConverterForLoon(source) {
   source = replaceRequired(
     source,
     "    '# Generated dynamically by Clash2Loon Cloudflare Worker v1.5 strict-native',\n    `# Upstream nodes: ${proxies.length}; groups: ${groups.length}; providers: ${Object.keys(providers).length}; rules: ${rules.length}`,\n    `# Power profile: ${power.profile}; adjusted url-test groups: ${adjustedPowerGroups}/${compact.powerTuning.length}`,\n    '# Nodes are loaded from /nodes; large Clash node lists are represented by dynamic Loon NameRegex filters.',",
-    "    '# Clash2Loon v1.5.23',\n    `# Generated at: ${formatGeneratedAt()}`,\n    `# Power profile: ${power.profile}`,",
+    "    '# Clash2Loon v1.5.24',\n    `# Generated at: ${formatGeneratedAt()}`,\n    `# Power profile: ${power.profile}`,",
     'concise generated config header'
   );
 
-  source = source.replaceAll('v1.5 strict-native', 'v1.5.23 strict-native');
-  source = source.replaceAll('loon-doc-strict-v1.5', 'loon-doc-strict-v1.5.23');
+  source = source.replaceAll('v1.5 strict-native', 'v1.5.24 strict-native');
+  source = source.replaceAll('loon-doc-strict-v1.5', 'loon-doc-strict-v1.5.24');
   return source;
 }
 
 function patchIndexVersion(source) {
   source = source
     .replaceAll('Clash2Loon-Worker/1.5', 'Clash2Loon-Worker/1.5.23')
-    .replaceAll('v1.5-strict-native', 'v1.5.23-strict-native')
-    .replaceAll('v1.5 strict native', 'v1.5.23 strict native');
+    .replaceAll('v1.5-strict-native', 'v1.5.24-strict-native')
+    .replaceAll('v1.5 strict native', 'v1.5.24 strict native');
 
   source = replaceRequired(
     source,
@@ -168,13 +168,13 @@ function patchIndexVersion(source) {
   source = replaceRequired(
     source,
     "  const cacheVariant = `loon:${powerProfile}`;",
-    "  const cacheVariant = `loon:v1.5.23:${powerProfile}`;",
+    "  const cacheVariant = `loon:v1.5.24:${powerProfile}`;",
     'Loon cache revision'
   );
   source = replaceRequired(
     source,
     "  const cacheVariant = `status:${powerProfile}`;",
-    "  const cacheVariant = `status:v1.5.23:${powerProfile}`;",
+    "  const cacheVariant = `status:v1.5.24:${powerProfile}`;",
     'status cache revision'
   );
   return source;
@@ -193,4 +193,4 @@ async function joinParts(sourceDir, outputFile, count, transform = value => valu
 await joinParts('source-parts/converter', 'src/converter.js', 5, patchConverterForLoon);
 await joinParts('source-parts/index', 'src/index.js', 4, patchIndexVersion);
 
-console.log('Materialized src/converter.js and src/index.js (public v1.5.23: dynamic groups + inline nodes + hybrid local-filter compaction)');
+console.log('Materialized src/converter.js and src/index.js (public v1.5.24: dynamic groups + inline nodes + hybrid local-filter compaction)');
