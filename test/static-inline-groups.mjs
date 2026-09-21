@@ -38,13 +38,15 @@ const groupLine = out.config.split('\n').find(line => line.startsWith('Taiwan Ho
 assert.ok(groupLine);
 
 for (const name of names) {
-  assert.ok(out.config.includes(`${name} = trojan,`), `[Proxy] lost ${name}`);
+  assert.ok(out.nodes.includes(`${name} = trojan,`), `/nodes lost ${name}`);
+  assert.ok(!out.config.includes(`${name} = trojan,`), `main config unexpectedly inlined ${name}`);
   assert.ok(groupLine.includes(name), `small group lost ${name}`);
 }
 
-assert.ok(!out.config.includes('[Remote Proxy]'));
+assert.ok(out.config.includes('[Remote Proxy]'));
+assert.ok(out.config.includes('C2L_Nodes = https://example.workers.dev/nodes?token=TEST_TOKEN'));
 assert.ok(!out.config.includes('[Remote Filter]'));
-assert.equal(out.stats.nodeDelivery, 'inline');
+assert.equal(out.stats.nodeDelivery, 'remote-proxy');
 assert.equal(out.stats.remoteFilters, 0);
 
 const diagnostic = out.stats.groupDiagnostics.find(item => item.name === 'Taiwan Home');
