@@ -40,12 +40,12 @@ const auto = out.config.split('\n').find(line => line.startsWith('Auto = url-tes
 assert.ok(auto?.startsWith('Auto = url-test,US-A,US-C,'));
 assert.match(auto, /interval=10800/);
 
-assert.ok(out.config.includes('US-A = trojan,'));
-assert.ok(out.config.includes('US-C = trojan,'));
+assert.ok(!out.config.includes('US-A = trojan,'));
+assert.ok(!out.config.includes('US-C = trojan,'));
 assert.ok(!out.config.includes('US-B = trojan,'));
-assert.ok(!out.config.includes('[Remote Proxy]'));
+assert.ok(out.config.includes('[Remote Proxy]'));
 assert.ok(!out.config.includes('[Remote Filter]'));
-assert.equal(out.stats.nodeDelivery, 'inline');
+assert.equal(out.stats.nodeDelivery, 'remote-proxy');
 assert.equal(out.stats.remoteFilters, 0);
 
 console.log(JSON.stringify({

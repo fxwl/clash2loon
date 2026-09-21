@@ -13,12 +13,12 @@ This document describes the public regression scope. It intentionally contains n
 - `dialer-proxy` to Loon proxy chains, including SOCKS5 landing nodes
 - Clash/Mihomo proxy groups to Loon policy groups
 - Mihomo dynamic group expansion via `include-all` / `include-all-proxies`, `filter`, and `exclude-filter`
-- Inline `[Proxy]` node delivery in the complete `/loon` config
-- Hybrid large-group compaction using exact local `NameRegex` filters
+- Linked `[Remote Proxy]` node delivery through `C2L_Nodes = /nodes`
+- Hybrid large-group compaction using source-scoped `NameRegex` Remote Filters
 - Order-safety fallback for custom/reversed group membership
-- `compact=off` all-inline compatibility mode
+- `compact=off` direct-member compatibility mode while keeping remote node delivery
 - Per-group compaction and line-size diagnostics
-- Stable standalone `/nodes` output
+- Stable `/nodes` output used by the linked node subscription
 - Rule Provider conversion and Worker-hosted remote rules
 - Exact node-definition deduplication
 - Configurable power profiles for `url-test` groups
@@ -39,10 +39,10 @@ npm run test:regression
 The regression suite checks:
 
 - base/Clash ownership rules;
-- small inline groups and exact YAML member ordering;
+- small groups with direct node-name membership and exact YAML ordering;
 - 192-node hybrid compaction and filter reuse;
-- custom/reversed-order inline fallback;
-- `compact=off` all-inline fallback;
+- custom/reversed-order direct-membership fallback;
+- `compact=off` fallback with Remote Filter compaction disabled;
 - Mihomo dynamic group expansion and exclusion of unsupported nodes;
 - node deduplication;
 - SOCKS5 conversion and SOCKS5 `dialer-proxy` chain generation;

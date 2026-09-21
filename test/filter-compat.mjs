@@ -38,13 +38,14 @@ const out = convertClashToLoon(clash, {
   powerProfile: 'battery'
 });
 
-assert.ok(!out.config.includes('[Remote Proxy]'));
+assert.ok(out.config.includes('[Remote Proxy]'));
 assert.ok(!out.config.includes('[Remote Filter]'));
-assert.equal(out.stats.nodeDelivery, 'inline');
+assert.equal(out.stats.nodeDelivery, 'remote-proxy');
 assert.equal(out.stats.remoteFilters, 0);
 
 for (const name of names) {
-  assert.ok(out.config.includes(`${name} = trojan,`), `[Proxy] lost inline node: ${name}`);
+  assert.ok(out.nodes.includes(`${name} = trojan,`), `/nodes lost linked node: ${name}`);
+  assert.ok(!out.config.includes(`${name} = trojan,`), `main config unexpectedly inlined node: ${name}`);
 }
 
 const selectLine = out.config.split('\n').find(v => v.startsWith('Main Proxy = select,'));
@@ -62,5 +63,5 @@ console.log(JSON.stringify({
   ok: true,
   remoteFilters: out.stats.remoteFilters,
   powerProfile: out.stats.powerProfile,
-  inlineNodes: true
+  linkedNodes: true
 }, null, 2));

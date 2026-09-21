@@ -14,6 +14,20 @@ This project follows a pragmatic versioning model while the converter is still e
 - Improve documentation for additional Loon-native base configurations.
 - Continue conservative protocol support without guessing undocumented Loon behavior.
 
+## [1.5.24] - 2026-09-21
+
+### Changed
+
+- Restore linked node delivery through `[Remote Proxy]` using `C2L_Nodes = /nodes` instead of embedding converted nodes in local `[Proxy]`.
+- Large, order-safe policy-group node runs now use source-scoped `NameRegex` Remote Filters against `C2L_Nodes`; small and custom-ordered groups keep direct node names.
+- `compact=off` now disables only policy-group Remote Filter compaction while keeping remote node delivery enabled.
+- Bump cache revision so existing v1.5.23 `/loon` and `/status` cache entries are not reused.
+- Expose `/nodes?type=socks5` for SOCKS5 isolation and diagnostics.
+
+### Why
+
+- Linked node delivery avoids long-lived local-node accumulation in Loon when upstream nodes are removed. After migration, node lifecycle is managed by refreshing the `C2L_Nodes` subscription.
+
 ## [1.5.23] - 2026-09-20
 
 ### Added

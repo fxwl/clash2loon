@@ -54,9 +54,9 @@ assert.ok(groupLine.includes(tw05));
 assert.ok(!groupLine.includes(tw02));
 assert.ok(!groupLine.includes(india));
 assert.ok(!groupLine.includes(unsupported));
-assert.ok(!out.config.includes('[Remote Proxy]'));
+assert.ok(out.config.includes('[Remote Proxy]'));
 assert.ok(!out.config.includes('[Remote Filter]'));
-assert.equal(out.stats.nodeDelivery, 'inline');
+assert.equal(out.stats.nodeDelivery, 'remote-proxy');
 
 assert.equal(out.stats.dynamicGroupsExpanded, 1);
 const expansion = out.stats.dynamicGroupExpansions.find(item => item.group === 'Taiwan Auto');

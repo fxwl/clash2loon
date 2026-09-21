@@ -115,7 +115,7 @@ async function handleNodes(request, env, ctx) {
 
   const supported = new Set([
     'all', 'vless', 'vless-ws', 'vless-reality', 'vless-other',
-    'trojan', 'hysteria2', 'landing', 'regular'
+    'trojan', 'hysteria2', 'socks5', 'landing', 'regular'
   ]);
   if (!supported.has(type)) {
     return json({ ok: false, error: `Unknown node type: ${type}`, supported: [...supported] }, 400);

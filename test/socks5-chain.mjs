@@ -61,7 +61,7 @@ const out = convertClashToLoon(clash, {
   powerProfile: 'battery'
 });
 
-const directLine = out.config.split('\n').find(line => line.startsWith(`${directSocks} = socks5,`));
+const directLine = out.nodes.split('\n').find(line => line.startsWith(`${directSocks} = socks5,`));
 assert.equal(
   directLine,
   `${directSocks} = socks5,direct.example.com,1080,udp=false`,
@@ -69,7 +69,7 @@ assert.equal(
 );
 
 const landingName = `${chainedSocks} · 落地`;
-const landingLine = out.config.split('\n').find(line => line.startsWith(`${landingName} = socks5,`));
+const landingLine = out.nodes.split('\n').find(line => line.startsWith(`${landingName} = socks5,`));
 assert.equal(
   landingLine,
   `${landingName} = socks5,socks.example.com,443,"user,name","p,ass",over-tls=true,sni=socks.example.com,skip-cert-verify=false,fast-open=true,udp=true`,
@@ -86,6 +86,11 @@ assert.equal(
 const mainLine = out.config.split('\n').find(line => line.startsWith('Main = select,'));
 assert.equal(mainLine, `Main = select,${chainedSocks},${directSocks},${transitGroup}`);
 
+assert.ok(out.config.includes('[Remote Proxy]'));
+assert.ok(out.config.includes('C2L_Nodes = https://example.workers.dev/nodes?token=TEST_TOKEN'));
+assert.ok(!out.config.includes(`${directSocks} = socks5,`));
+assert.ok(!out.config.includes(`${landingName} = socks5,`));
+assert.equal(out.stats.nodeDelivery, 'remote-proxy');
 assert.equal(out.stats.proxyChains, 1);
 assert.equal(out.stats.nodeTypes.socks5, 2);
 assert.ok(!out.warnings.some(w =>
