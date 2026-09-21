@@ -24,9 +24,9 @@ If you are looking for **Loon plugins**, visit [ProxyResource](https://github.co
 - Support VLESS, VLESS Reality, VLESS WebSocket, Trojan, Hysteria2, and SOCKS5 (`socks` / `socks5`).
 - Convert `dialer-proxy` relationships into Loon Proxy Chains, including SOCKS5 landing nodes.
 - Preserve YAML-defined nodes, policy groups, rules, Rule Providers, and MATCH / FINAL semantics.
-- Deliver successfully converted nodes through the linked `C2L_Nodes` `[Remote Proxy]` subscription backed by `/nodes`; small and medium groups reference node names directly, while oversized order-safe runs are compacted through source-scoped `NameRegex` Remote Filters.
+- Deliver successfully converted nodes through the linked `C2L_Nodes` `[Remote Proxy]` subscription backed by `/nodes`; every linked node used by a policy group is referenced through an exact `NameRegex` Remote Filter.
 - Expand Mihomo dynamic groups using `include-all` / `include-all-proxies`, `filter`, and `exclude-filter` over successfully converted nodes.
-- Provide per-group `/status` diagnostics plus a `?compact=off` compatibility fallback.
+- Provide per-group `/status` diagnostics plus a `?compact=off` exact-filter compatibility fallback.
 - Deduplicate only nodes whose effective definitions are exactly identical, then repair group references automatically.
 - Convert and proxy supported Rule Providers.
 - Provide `source`, `performance`, `balanced`, and `battery` URL-test power profiles.
@@ -182,10 +182,9 @@ v1.5.24 uses linked node delivery with hybrid policy-group membership:
 
 - successfully converted nodes are served by `/nodes` and loaded by Loon through `[Remote Proxy]` as `C2L_Nodes`;
 - the main `/loon` configuration no longer embeds converted nodes in local `[Proxy]`;
-- groups with fewer than 64 concrete nodes and shorter than 2048 member bytes keep concrete node names directly;
-- oversized, order-safe node runs are replaced with exact `NameRegex` Remote Filters scoped to `C2L_Nodes`;
-- repeated node sets reuse the same generated filters;
-- custom or reversed node ordering stays direct instead of being reordered;
+- every linked node used by a policy group enters through a `NameRegex` Remote Filter scoped to `C2L_Nodes`;
+- order-safe contiguous node runs are grouped into chunked exact filters and repeated sets reuse the same filters;
+- custom or reversed ordering falls back to one exact filter per node so YAML ordering is preserved;
 - removing a node upstream removes it from the linked `/nodes` feed on refresh, avoiding long-lived local-node accumulation.
 
 For compatibility testing, disable policy-group filter compaction per request:
@@ -194,7 +193,7 @@ For compatibility testing, disable policy-group filter compaction per request:
 https://YOUR-WORKER/loon?token=YOUR_TOKEN&compact=off
 ```
 
-The same parameter can be used with `/status`. It keeps `C2L_Nodes` remote delivery enabled and only disables generated Remote Filters.
+The same parameter can be used with `/status`. It keeps `C2L_Nodes` remote delivery enabled and switches policy membership to one exact Remote Filter per node instead of grouping nodes into runs.
 
 ## Power Profiles
 
