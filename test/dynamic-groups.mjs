@@ -49,14 +49,16 @@ assert.ok(out.warnings.some(w => w.code === 'PROXY_TYPE_UNSUPPORTED' && w.node =
 
 const groupLine = out.config.split('\n').find(line => line.startsWith('Taiwan Auto = url-test,'));
 assert.ok(groupLine);
-assert.ok(groupLine.includes(tw01));
-assert.ok(groupLine.includes(tw05));
+assert.ok(!groupLine.includes(tw01));
+assert.ok(!groupLine.includes(tw05));
 assert.ok(!groupLine.includes(tw02));
 assert.ok(!groupLine.includes(india));
 assert.ok(!groupLine.includes(unsupported));
 assert.ok(out.config.includes('[Remote Proxy]'));
-assert.ok(!out.config.includes('[Remote Filter]'));
+assert.ok(out.config.includes('[Remote Filter]'));
 assert.equal(out.stats.nodeDelivery, 'remote-proxy');
+assert.ok(groupLine.includes('C2L_NodeSet_'));
+assert.ok(out.stats.remoteFilters > 0);
 
 assert.equal(out.stats.dynamicGroupsExpanded, 1);
 const expansion = out.stats.dynamicGroupExpansions.find(item => item.group === 'Taiwan Auto');
