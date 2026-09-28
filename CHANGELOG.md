@@ -1,3 +1,13 @@
+## 1.5.26 - 2026-09-29
+
+- Align node output with current Loon 3.5.2 syntax, including VMess, VLESS, and Trojan Reality mappings.
+- Add AnyTLS conversion support.
+- Add Hysteria2 port hopping, hop interval, and download bandwidth mappings.
+- Preserve additional supported node options such as fast-open, block-quic, ip-mode, server-dns, tls-profile, and ALPN.
+- Preserve Clash `fallback` and `load-balance` groups as native Loon policy groups where mappings are defined instead of always downgrading to `select`.
+- Add dedicated Loon 3.5.2 regression coverage.
+- Keep the public edition free of bundled personal plugins; users can continue to configure plugins through `MANAGED_PLUGINS_JSON`.
+
 # Changelog
 
 [English](CHANGELOG.md) | [简体中文](CHANGELOG.zh-CN.md)
