@@ -1,10 +1,3 @@
-      code: 'HY2_PORT_HOPPING_DROPPED', node: name,
-      detail: `Mihomo ports=${proxy.ports} was omitted; Loon node format does not document HY2 port hopping.`
-    });
-  }
-  params.push(`udp=${bool(proxy.udp, true)}`);
-  return `${name} = Hysteria2,${proxy.server},${proxy.port},${q(proxy.password)},${params.join(',')}`;
-}
 function convertSocks5(proxy) {
   const name = cleanName(proxy.name);
   const params = [];
@@ -19,19 +12,49 @@ function convertSocks5(proxy) {
   if (tlsEnabled) {
     params.push('over-tls=true');
     tlsCommon(proxy, params, true);
+    addTlsProfile(proxy, params);
   }
-
-  const fastOpen = proxy.tfo ?? proxy['fast-open'];
-  if (fastOpen != null) params.push(`fast-open=${bool(fastOpen)}`);
+  addCommonNodeOptions(proxy, params);
   params.push(`udp=${bool(proxy.udp, true)}`);
 
   return `${name} = socks5,${proxy.server},${proxy.port}${auth.length ? ',' + auth.join(',') : ''}${params.length ? ',' + params.join(',') : ''}`;
 }
+
+function convertAnyTLS(proxy, warnings) {
+  const name = cleanName(proxy.name);
+  const params = [];
+  tlsCommon(proxy, params, true);
+  addTlsProfile(proxy, params);
+  appendReality(proxy, params);
+
+  const idle = Number(proxy['idle-session-timeout']);
+  if (Number.isFinite(idle) && idle > 0) params.push(`idle-session-timeout=${idle}`);
+
+  const maxStreams = Number(proxy['max-stream-count']);
+  if (Number.isFinite(maxStreams) && maxStreams > 0) params.push(`max-stream-count=${Math.trunc(maxStreams)}`);
+
+  for (const field of ['idle-session-check-interval', 'min-idle-session']) {
+    if (proxy[field] != null) {
+      warnings.push({
+        code: 'ANYTLS_OPTION_DROPPED',
+        node: name,
+        detail: `Mihomo AnyTLS ${field} has no documented Loon equivalent and was omitted.`
+      });
+    }
+  }
+
+  addCommonNodeOptions(proxy, params);
+  params.push(`udp=${bool(proxy.udp, true)}`);
+  return `${name} = AnyTLS,${proxy.server},${proxy.port},${q(proxy.password)},${params.join(',')}`;
+}
 function convertProxyLine(proxy, warnings) {
   switch (str(proxy.type).toLowerCase()) {
+    case 'vmess': return convertVmess(proxy, warnings);
     case 'vless': return convertVless(proxy, warnings);
-    case 'trojan': return convertTrojan(proxy);
-    case 'hysteria2': return convertHysteria2(proxy, warnings);
+    case 'trojan': return convertTrojan(proxy, warnings);
+    case 'hysteria2':
+    case 'hy2': return convertHysteria2(proxy, warnings);
+    case 'anytls': return convertAnyTLS(proxy, warnings);
     case 'socks':
     case 'socks5': return convertSocks5(proxy);
     default:
