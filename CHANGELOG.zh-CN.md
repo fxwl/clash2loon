@@ -1,13 +1,3 @@
-## 1.5.26 - 2026-09-29
-
-- 对齐当前 Loon 3.5.2 节点语法，补充 VMess、VLESS、Trojan Reality 参数映射。
-- 新增 AnyTLS 转换支持。
-- Hysteria2 支持端口跳跃（Port Hopping）、hop interval 与下载带宽映射。
-- 补充 fast-open、block-quic、ip-mode、server-dns、tls-profile、ALPN 等可表达节点参数。
-- Clash `fallback` 与 `load-balance` 策略组优先映射为 Loon 原生策略组，不再统一降级为 `select`。
-- 新增 Loon 3.5.2 专项回归测试。
-- 公开版继续保持默认不内置私人插件，插件仍通过 `MANAGED_PLUGINS_JSON` 自行配置。
-
 # 更新日志
 
 [English](CHANGELOG.md) | [简体中文](CHANGELOG.zh-CN.md)
@@ -23,6 +13,21 @@ Clash2Loon 的公开版本重要变更记录在这里。
 - 扩展脱敏协议 fixture 与兼容性覆盖。
 - 完善更多 Loon 原生 Base 配置的文档。
 - 在不猜测未文档化 Loon 行为的前提下继续扩展协议支持。
+
+## [1.5.26] - 2026-09-29
+
+### 新增
+
+- 新增 AnyTLS 转换支持。
+- 新增 Loon 3.5.2 专项回归测试。
+
+### 调整
+
+- 对齐当前 Loon 3.5.2 节点语法，补充 VMess、VLESS、Trojan Reality 参数映射。
+- Hysteria2 支持端口跳跃（Port Hopping）、hop interval 与下载带宽映射。
+- 补充 fast-open、block-quic、ip-mode、server-dns、tls-profile、ALPN 等可表达节点参数。
+- Clash `fallback` 与 `load-balance` 策略组优先映射为 Loon 原生策略组，不再统一降级为 `select`。
+- 公开版继续保持默认不内置私人插件，插件仍通过 `MANAGED_PLUGINS_JSON` 自行配置。
 
 ## [1.5.25] - 2026-09-21
 
