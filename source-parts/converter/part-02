@@ -55,6 +55,42 @@
       });
       if (group.lazy != null) warnings.push({ code: 'GROUP_LAZY_DROPPED', group: name, detail: 'Mihomo lazy was omitted.' });
       lines.push(`${name} = url-test,${members.join(',')},${params.join(',')}`);
+    } else if (group.type === 'fallback') {
+      const params = [];
+      if (group.url) params.push(`url=${group.url}`);
+      params.push(`interval=${Math.max(1, Number(group.interval) || 300)}`);
+      const maxTimeout = Number(group.timeout);
+      if (Number.isFinite(maxTimeout) && maxTimeout > 0) params.push(`max-timeout=${Math.trunc(maxTimeout)}`);
+      if (group.lazy != null) warnings.push({ code: 'GROUP_LAZY_DROPPED', group: name, detail: 'Mihomo lazy was omitted.' });
+      lines.push(`${name} = fallback,${members.join(',')},${params.join(',')}`);
+    } else if (group.type === 'load-balance') {
+      const strategyMap = {
+        'round-robin': 'Round-Robin',
+        'consistent-hashing': 'PCC',
+        'sticky-sessions': 'PCC'
+      };
+      const algorithm = strategyMap[cleanName(group.strategy).toLowerCase()] || 'Random';
+      const params = [];
+      if (group.url) params.push(`url=${group.url}`);
+      params.push(`interval=${Math.max(1, Number(group.interval) || 300)}`);
+      const maxTimeout = Number(group.timeout);
+      if (Number.isFinite(maxTimeout) && maxTimeout > 0) params.push(`max-timeout=${Math.trunc(maxTimeout)}`);
+      params.push(`algorithm=${algorithm}`);
+      if (group.strategy && !strategyMap[cleanName(group.strategy).toLowerCase()]) {
+        warnings.push({
+          code: 'LOAD_BALANCE_STRATEGY_APPROXIMATED',
+          group: name,
+          detail: `Mihomo strategy ${group.strategy} has no exact documented Loon mapping; Random was used.`
+        });
+      }
+      if (cleanName(group.strategy).toLowerCase() === 'sticky-sessions') {
+        warnings.push({
+          code: 'LOAD_BALANCE_STRATEGY_APPROXIMATED',
+          group: name,
+          detail: 'Mihomo sticky-sessions was approximated with Loon PCC; semantics are not identical.'
+        });
+      }
+      lines.push(`${name} = load-balance,${members.join(',')},${params.join(',')}`);
     } else if (group.type === 'select') {
       lines.push(`${name} = select,${members.join(',')}`);
     } else {
