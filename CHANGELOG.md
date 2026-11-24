@@ -6,6 +6,19 @@ All notable public changes to Clash2Loon are documented here.
 
 This project follows a pragmatic versioning model while the converter is still evolving. Compatibility changes that may affect generated Loon configuration are called out explicitly.
 
+## [1.6.3] - 2026-11-24
+
+### Added
+- Shadowsocks/SSR, HTTP(S), WireGuard and referenced/inline proxy provider support.
+- Hysteria2 port-hopping, TLS pinning and Salamander safeguards; REALITY hybrid TLS profile mapping.
+- Direct-node `dialer-proxy` chaining and safe two-hop legacy relay handling, with fail-closed diagnostics.
+- Lightweight unlimited-by-default `/nodes` conversion, bounded fetches and trusted provider manifest cache.
+- Sanitized protocol, Worker, HY2 and relay regression tests.
+
+### Preserved
+- Neutral embedded Loon base, environment-driven managed plugins and configurable control-plane domains.
+- Generic worker deployment settings, bilingual public documentation and MIT license.
+
 ## [Unreleased]
 
 ### Planned
