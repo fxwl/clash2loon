@@ -18,9 +18,7 @@ Clash2Loon 最初是在我长期使用 Loon 的过程中，受到 [可莉的 Loo
 如果你有 **Loon 插件**方面的需求，可以前往 [ProxyResource](https://github.com/luestr/ProxyResource) 查看。
 
 
-## v1.6.3 — 公开版功能同步
-
-本次将持续维护的通用协议和 Worker 优化同步到开源版，不包含私人订阅、密钥、个人插件清单及固定分流策略。
+## v1.6.3 更新内容
 
 - **协议支持：** VLESS、VMess、Trojan、AnyTLS、HY2、SOCKS5、Shadowsocks（受支持插件）、ShadowsocksR、HTTP/HTTPS 代理及 WireGuard。
 - **HY2：** 端口跳跃、`hop-interval`、SHA-256 TLS 证书指纹与 Salamander 混淆参数安全校验。
@@ -28,8 +26,6 @@ Clash2Loon 最初是在我长期使用 Loon 的过程中，受到 [可莉的 Loo
 - **中转链：** `dialer-proxy` 可引用具体节点或策略组，支持可安全映射的旧式两跳 `relay`；缺失、循环和明显不兼容的链路给出诊断并避免意外直连。
 - **订阅性能：** `/nodes` 默认不截断，支持手动分页；轻量节点转换、HTTP 请求大小与超时限制、可信 Rule Provider 元数据缓存，降低并发刷新时的 CPU 开销。
 - **Provider：** 支持所引用的 HTTP/inline Proxy Provider、inline Rule Provider，拒绝不可信来源参数注入。
-
-公开版依旧使用中立的 Loon Base；插件通过 `MANAGED_PLUGINS_JSON` 配置，控制面分流通过 `CONTROL_PLANE_POLICY` 与 `CONTROL_PLANE_DOMAINS` 配置，不内置私人域名。
 
 ## 主要能力
 
@@ -130,7 +126,7 @@ npm run deploy
 - [AI Deployment Prompt — English](docs/AI_DEPLOYMENT_PROMPT.md)
 - [AI 部署提示词 — 简体中文](docs/AI_DEPLOYMENT_PROMPT.zh-CN.md)
 
-提示词会要求 AI：检查环境、配置 Cloudflare、创建 Secrets、部署 Worker、验证 `/health` 和 `/status`，最后生成可导入 Loon 的地址，同时明确禁止把私人订阅和 Token 提交到仓库。
+提示词会要求 AI：检查环境、配置 Cloudflare、创建 Secrets、部署 Worker、验证 `/health` 和 `/status`，最后生成可导入 Loon 的地址。
 
 ## Loon 地址
 
@@ -220,7 +216,7 @@ https://YOUR-WORKER/loon?token=YOUR_TOKEN&compact=off
 | `balanced` | 平衡响应速度与功耗 |
 | `battery` | 最长测速周期，默认推荐 |
 
-公开版默认：
+默认值：
 
 ```text
 POWER_PROFILE=battery
@@ -230,7 +226,7 @@ POWER_PROFILE=battery
 
 ## 自定义插件
 
-公开版**默认不内置任何插件清单**。
+默认插件列表为空，可按需添加。
 
 如需每次生成配置时自动注入自己的 Loon 插件，请配置：
 
@@ -251,7 +247,7 @@ MANAGED_PLUGINS_JSON
 
 ## 控制面资源分流
 
-部分插件源、规则源或资源站在 Loon 开启时可能需要指定代理策略。公开版不会写死任何第三方域名。
+部分插件源、规则源或资源站在 Loon 开启时可能需要指定代理策略。相关设置可通过环境变量管理。
 
 可选配置：
 
@@ -276,7 +272,7 @@ DOMAIN,exact.example.net,MyProxyGroup
 - 真实 Clash / Mihomo 订阅地址；
 - Proxy UUID、密码、Reality Key 等凭据；
 - Worker `ACCESS_TOKEN`；
-- 私人插件 Token；
+- 插件访问 Token；
 - 生成后的 `/nodes` 或 `.lcf` 文件；
 - 任何你不希望公开的部署信息。
 
