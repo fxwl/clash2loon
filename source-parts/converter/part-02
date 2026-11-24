@@ -154,7 +154,7 @@ export function convertClashToLoon(clash, options = {}) {
       const kind = str(proxy.type).toLowerCase();
       const subtype = kind === 'vless'
         ? (proxy['reality-opts'] ? 'vless-reality' : (proxy.network === 'ws' ? 'vless-ws' : 'vless-other'))
-        : ((kind === 'socks' || kind === 'socks5') ? 'socks5' : kind);
+        : ((kind === 'socks' || kind === 'socks5') ? 'socks5' : (kind === 'hy2' ? 'hysteria2' : kind));
       nodeEntries.push({
         index: nodeEntries.length,
         name: cleanName(clone.name),
@@ -171,19 +171,124 @@ export function convertClashToLoon(clash, options = {}) {
   const groupNames = new Set(groups.map(g => cleanName(g.name)).filter(Boolean));
   const chainLines = [];
   const validChainNames = [];
-  for (const d of dialerTargets.values()) {
-    if (!groupNames.has(d.via) && !BUILTIN_POLICIES.has(d.via)) {
-      warnings.push({ code: 'DIALER_POLICY_NOT_FOUND', node: d.chainName, detail: `dialer-proxy target ${d.via} was not found; chain omitted.` });
-      continue;
+  function buildChains() {
+    const validChainSet = new Set();
+    const syntheticDialerGroups = [];
+    const syntheticByNode = new Map();
+    const regularNodeSet = new Set(regularNodeNames);
+    const reservedNames = new Set([...usedNames, ...groupNames]);
+    const groupsByName = new Map(groups.map(g => [cleanName(g.name), g]));
+    const proxyByName = new Map(proxies.map(proxy => [cleanName(proxy.name), proxy]));
+    const groupMemberCache = new Map();
+    const ordinaryGroups = groups.filter(g => cleanName(g.type).toLowerCase() !== 'relay');
+    const relayGroups = groups.filter(g => cleanName(g.type).toLowerCase() === 'relay');
+    const ordinaryNames = new Set(ordinaryGroups.map(g => cleanName(g.name)));
+    const orphanLandings = new Set();
+  
+    function remoteNodeGroup(nodeName) {
+      if (syntheticByNode.has(nodeName)) return syntheticByNode.get(nodeName);
+      const alias = uniqueName('C2L_Dialer_' + fnv1a(nodeName), reservedNames);
+      syntheticDialerGroups.push({ name: alias, type: 'select', proxies: [nodeName] });
+      syntheticByNode.set(nodeName, alias);
+      return alias;
     }
-    chainLines.push(`${d.chainName} = ${d.via},${d.landingName},udp=${d.udp}`);
-    validChainNames.push(d.chainName);
+  
+    // Reject circular groups, including dynamic include-all selections.
+    function groupContainsChain(groupName, chainName, visiting = new Set()) {
+      if (visiting.has(groupName)) return false;
+      const group = groupsByName.get(groupName);
+      if (!group) return false;
+      visiting.add(groupName);
+      let members = groupMemberCache.get(groupName);
+      if (!members) {
+        members = resolveGroupMembers(group, regularNodeNames, [...dialerTargets.keys()], []).members;
+        groupMemberCache.set(groupName, members);
+      }
+      if (members.includes(chainName)) return true;
+      return members.some(member => groupsByName.has(member) && groupContainsChain(member, chainName, visiting));
+    }
+  
+    // Legacy two-hop relay is a real chain, never a select fallback.
+    for (const group of relayGroups) {
+      const name = cleanName(group.name);
+      const hops = Array.isArray(group.proxies) ? group.proxies.map(cleanName).filter(Boolean) : [];
+      if (hops.length !== 2) {
+        warnings.push({ code: 'RELAY_GROUP_UNSUPPORTED', group: name,
+          detail: 'Legacy relay needs exactly two explicit hops for safe Loon conversion; chain omitted.' });
+        continue;
+      }
+      const resolved = [];
+      for (const hop of hops) {
+        if (regularNodeSet.has(hop)) resolved.push(remoteNodeGroup(hop));
+        else if (ordinaryNames.has(hop)) resolved.push(hop);
+        else resolved.push(null);
+      }
+      if (resolved.some(hop => !hop) || hops.includes(name) || hops[0] === hops[1]) {
+        warnings.push({ code: 'RELAY_GROUP_TARGET_INVALID', group: name,
+          detail: 'Legacy relay contains an unknown, nested, or self-referencing hop; chain omitted.' });
+        continue;
+      }
+      chainLines.push(`${name} = ${resolved.join(',')},udp=${bool(group.udp, true)}`);
+      validChainNames.push(name);
+      validChainSet.add(name);
+    }
+  
+    for (const d of dialerTargets.values()) {
+      const original = proxyByName.get(d.chainName);
+      const protocol = cleanName(original?.type).toLowerCase();
+      let via = null;
+      if (d.via === d.chainName) {
+        warnings.push({ code: 'DIALER_CHAIN_CYCLE', node: d.chainName,
+          detail: 'dialer-proxy references the same node; chain omitted.' });
+      } else if (ordinaryNames.has(d.via)) {
+        if (groupContainsChain(d.via, d.chainName)) {
+          warnings.push({ code: 'DIALER_CHAIN_CYCLE', node: d.chainName,
+            detail: 'dialer-proxy group contains its own chain; chain omitted.' });
+        } else via = d.via;
+      } else if (regularNodeSet.has(d.via)) {
+        const transit = proxyByName.get(d.via);
+        if (['hysteria2', 'hy2', 'wireguard', 'wg'].includes(protocol) && transit?.udp === false) {
+          warnings.push({ code: 'DIALER_UDP_HOP_UNSUPPORTED', node: d.chainName,
+            detail: 'UDP-only landing cannot use a transit with udp=false; chain omitted.' });
+        } else via = remoteNodeGroup(d.via);
+      } else if (validChainSet.has(d.via) || dialerTargets.has(d.via)) {
+        warnings.push({ code: 'DIALER_NESTED_CHAIN_UNSUPPORTED', node: d.chainName,
+          detail: 'Nested proxy-chain dialer is not safely mapped by this converter; chain omitted.' });
+      } else if (BUILTIN_POLICIES.has(d.via)) {
+        warnings.push({ code: 'DIALER_BUILTIN_UNSUPPORTED', node: d.chainName,
+          detail: 'dialer-proxy references a built-in policy instead of a transit; chain omitted.' });
+      } else {
+        warnings.push({ code: 'DIALER_POLICY_NOT_FOUND', node: d.chainName,
+          detail: `dialer-proxy target ${d.via} was not found; chain omitted.` });
+      }
+      if (!via) { orphanLandings.add(d.chainName); continue; }
+      if (['hysteria2', 'hy2', 'wireguard', 'wg'].includes(protocol)) {
+        warnings.push({ code: 'DIALER_UDP_DEPENDENCY', node: d.chainName,
+          detail: 'UDP-based landing requires the selected transit to forward UDP; verify all hops.' });
+      }
+      chainLines.push(`${d.chainName} = ${via},${d.landingName},udp=${d.udp}`);
+      validChainNames.push(d.chainName);
+      validChainSet.add(d.chainName);
+    }
+  
+    // A broken chain must not leak its bare landing node into /nodes.
+    if (orphanLandings.size) {
+      for (let i = nodeEntries.length - 1; i >= 0; i--) {
+        if (nodeEntries[i].landing && orphanLandings.has(nodeEntries[i].originalName)) {
+          nodeEntries.splice(i, 1);
+          nodeOnlyLines.splice(i, 1);
+          convertedNodes--;
+        }
+      }
+    }
+    return { ordinaryGroups, syntheticDialerGroups };
   }
+  const { ordinaryGroups, syntheticDialerGroups } = buildChains();
 
   const nodeSourceAlias = '__C2L_Nodes';
   const nodesUrl = `${baseUrl}/nodes${makeQuery(token)}`;
   const compact = createCompactGroups(
-    groups,
+    [...ordinaryGroups, ...syntheticDialerGroups],
     regularNodeNames,
     validChainNames,
     nodeSourceAlias,
