@@ -34,7 +34,7 @@ Public configuration remains neutral: keep the embedded Loon base, configure plu
 ## Features
 
 - Convert Clash / Mihomo YAML into a Loon Remote Configuration.
-- Support VLESS, VLESS Reality, VLESS WebSocket, Trojan, Hysteria2, and SOCKS5 (`socks` / `socks5`).
+- Support VLESS (including REALITY and WebSocket), VMess, Trojan, Hysteria2, AnyTLS, SOCKS5, Shadowsocks/SSR, HTTP(S) proxies and WireGuard, with explicit warnings for unmappable options.
 - Convert `dialer-proxy` relationships into Loon Proxy Chains, including SOCKS5 landing nodes.
 - Preserve YAML-defined nodes, policy groups, rules, Rule Providers, and MATCH / FINAL semantics.
 - Deliver successfully converted nodes through the linked `C2L_Nodes` `[Remote Proxy]` subscription backed by `/nodes`; every linked node used by a policy group is referenced through an exact `NameRegex` Remote Filter.
@@ -317,7 +317,7 @@ Do not commit your real test YAML.
 
 ## Known Limitations
 
-- The converter intentionally does not attempt to support every Clash protocol. The current focus is VLESS, Trojan, Hysteria2, and SOCKS5.
+- The converter intentionally does not attempt to support every Clash protocol. Supported implementations include VLESS, VMess, Trojan, HY2, AnyTLS, SOCKS5, SS/SSR, HTTP(S) and WireGuard; undocumented protocol features are rejected or flagged rather than guessed.
 - Some Mihomo-specific fields have no one-to-one Loon equivalent and are omitted with warnings.
 - Desktop-only rules such as `PROCESS-NAME` are not force-mapped to iOS.
 - Binary `.mrs` Rule Providers can only be converted when a known text sibling can be derived.
