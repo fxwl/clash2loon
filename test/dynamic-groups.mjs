@@ -22,7 +22,7 @@ const clash = {
     { name: tw01, ...shared, server: 'tw1.example.com' },
     { name: tw02, ...shared, server: 'tw2.example.com' },
     { name: tw05, ...shared, server: 'tw5.example.com' },
-    { name: unsupported, type: 'ss', server: '198.51.100.9', port: 8388, cipher: 'aes-128-gcm', password: 'test' }
+    { name: unsupported, type: 'tuic', server: '198.51.100.9', port: 8388, password: 'test' }
   ],
   'proxy-groups': [{
     name: 'Taiwan Auto',
