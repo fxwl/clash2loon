@@ -51,9 +51,7 @@ function httpOptions(proxy, params) {
   if (host) params.push(`host=${pv(Array.isArray(host) ? host[0] : host)}`);
 }
 
-// Conservative on purpose: tls-profile requires newer Loon builds and Mihomo's
-// client-fingerprint vocabulary is not one-to-one with Loon. The official
-// Reality example does not require tls-profile, so v1.4 omits it by default.
+// TLS profile is selected separately from SNI and certificate policy.
 function tlsCommon(proxy, params, tlsEnabled = true) {
   if (!tlsEnabled) return;
   const sni = proxy.servername ?? proxy.sni;
@@ -63,8 +61,28 @@ function tlsCommon(proxy, params, tlsEnabled = true) {
   }
 }
 const LOON_TLS_PROFILES = new Set(['global', 'default', 'safari-ios18', 'safari-ios-26', 'chrome', 'chrome147']);
-function addTlsProfile(proxy, params) {
+function addTlsProfile(proxy, params, warnings = []) {
   const fp = cleanName(proxy?.['client-fingerprint']).toLowerCase();
+  const hybridOption = proxy?.['reality-opts']?.['support-x25519mlkem768'];
+  // In Loon, chrome147 / safari-ios-26 advertise the modern hybrid
+  // X25519-MLKEM768 key share. A plain "chrome" profile may fail against
+  // recent REALITY servers even though Mihomo's chrome + hybrid flag works.
+  // Apply only when the upstream YAML explicitly enables the hybrid option.
+  const hybrid = hybridOption === true || hybridOption === 1
+    || String(hybridOption).trim().toLowerCase() === 'true';
+  if (proxy?.['reality-opts'] && hybrid) {
+    const loonProfile = ['safari', 'ios', 'safari-ios18', 'safari-ios-26'].includes(fp)
+      ? 'safari-ios-26' : 'chrome147';
+    params.push(`tls-profile=${loonProfile}`);
+    if (loonProfile !== fp) {
+      warnings.push({
+        code: 'REALITY_MLKEM_TLS_PROFILE_MAPPED',
+        node: cleanName(proxy?.name),
+        detail: `REALITY support-x25519mlkem768=true: mapped fingerprint ${fp || '(unset)'} to Loon ${loonProfile}; direct Loon node syntax has no separate ML-KEM switch.`
+      });
+    }
+    return;
+  }
   if (LOON_TLS_PROFILES.has(fp)) params.push(`tls-profile=${fp}`);
 }
 function addAlpn(proxy, params) {
@@ -130,15 +148,16 @@ function convertVless(proxy, warnings) {
   const tlsEnabled = bool(proxy.tls) || Boolean(reality);
   if (proxy.flow) params.push(`flow=${proxy.flow}`);
   appendReality(proxy, params);
-  if (reality?.['_spider-x']) {
+  const spiderX = reality?.['_spider-x'] ?? reality?.['spider-x'] ?? reality?.spiderX;
+  if (spiderX) {
     warnings.push({
       code: 'VLESS_REALITY_SPIDER_X_DROPPED', node: name,
-      detail: 'Mihomo reality-opts._spider-x has no documented Loon equivalent and was omitted.'
+      detail: 'REALITY spiderX/spx has no documented Loon node parameter and was omitted; this may affect server compatibility.'
     });
   }
   params.push(`over-tls=${tlsEnabled}`);
   tlsCommon(proxy, params, tlsEnabled);
-  addTlsProfile(proxy, params);
+  addTlsProfile(proxy, params, warnings);
   addAlpn(proxy, params);
   addCommonNodeOptions(proxy, params);
   params.push(`udp=${bool(proxy.udp, true)}`);
@@ -178,7 +197,7 @@ function convertVmess(proxy, warnings) {
   const tlsEnabled = bool(proxy.tls) || reality;
   params.push(`over-tls=${tlsEnabled}`);
   tlsCommon(proxy, params, tlsEnabled);
-  addTlsProfile(proxy, params);
+  addTlsProfile(proxy, params, warnings);
   addAlpn(proxy, params);
   addCommonNodeOptions(proxy, params);
   params.push(`udp=${bool(proxy.udp, true)}`);
@@ -195,61 +214,115 @@ function convertTrojan(proxy, warnings) {
   else if (transport === 'http') httpOptions(proxy, params);
   appendReality(proxy, params);
   tlsCommon(proxy, params, true);
-  addTlsProfile(proxy, params);
+  addTlsProfile(proxy, params, warnings);
   addAlpn(proxy, params);
   addCommonNodeOptions(proxy, params);
   params.push(`udp=${bool(proxy.udp, true)}`);
   return `${name} = trojan,${proxy.server},${proxy.port},${q(proxy.password)},${params.join(',')}`;
 }
 function normalizeSha256(v) {
-  if (!v) return null;
-  const raw = str(v).replace(/^sha256[:=]/i, '').trim();
-  return raw || null;
+  const text = String(v ?? "").trim().replace(/^sha256(?:\s+fingerprint)?\s*[:=]\s*/i, "").replace(/:/g, "");
+  return /^[0-9a-f]{64}$/i.test(text) ? text.toLowerCase() : null;
+}
+function parseHy2PortSpec(value) {
+  const raw = (Array.isArray(value) ? value.join(",") : String(value ?? "")).trim();
+  if (!raw) return null;
+  const pieces = raw.split(/[,/]/).map(item => item.trim());
+  if (pieces.some(item => !item)) return null;
+  const normalized = [];
+  let firstPort = null;
+  for (const piece of pieces) {
+    const match = piece.match(/^(\d{1,5})(?:\s*[-:]\s*(\d{1,5}))?$/);
+    if (!match) return null;
+    const start = Number(match[1]);
+    const end = Number(match[2] ?? match[1]);
+    if (start < 1 || start > 65535 || end < start || end > 65535) return null;
+    if (firstPort == null) firstPort = start;
+    normalized.push(start === end ? String(start) : `${start}:${end}`);
+  }
+  return { firstPort, loonPorts: normalized.join(",") };
 }
 function convertHysteria2(proxy, warnings) {
   const name = cleanName(proxy.name);
-  const params = [];
-  if (proxy.sni) params.push(`sni=${pv(proxy.sni)}`);
-  if (proxy['skip-cert-verify'] != null) params.push(`skip-cert-verify=${bool(proxy['skip-cert-verify'])}`);
+  const server = cleanName(proxy.server);
+  const rawPort = Number(proxy.port);
+  const validPort = Number.isInteger(rawPort) && rawPort >= 1 && rawPort <= 65535;
+  const rawPorts = proxy.ports;
+  const hasPorts = rawPorts != null && String(rawPorts).trim() !== "";
+  const hopPorts = hasPorts ? parseHy2PortSpec(rawPorts) : null;
 
-  const fp = normalizeSha256(proxy.fingerprint);
-  if (fp) params.push(`tls-cert-sha256=${pv(fp)}`);
-  addAlpn(proxy, params);
-
-  if (proxy.obfs && proxy.obfs !== 'salamander') {
-    warnings.push({
-      code: 'HY2_OBFS_UNSUPPORTED',
-      node: name,
-      detail: `Mihomo Hysteria2 obfs ${proxy.obfs} is not documented by Loon; obfs parameters were omitted.`
-    });
-  } else if (proxy['obfs-password']) {
-    params.push(`salamander-password=${q(proxy['obfs-password'])}`);
+  if (hasPorts && !hopPorts) {
+    warnings.push({ code: "HY2_PORTS_INVALID", node: name, detail: "Invalid Mihomo Hysteria2 ports specification; node omitted to avoid silently changing the target ports." });
+    return null;
+  }
+  const port = hopPorts?.firstPort ?? (validPort ? rawPort : null);
+  if (!server || !port) {
+    warnings.push({ code: "HY2_ADDRESS_INVALID", node: name, detail: "Hysteria2 needs a server and a valid port or ports range; node omitted." });
+    return null;
+  }
+  if (!cleanName(proxy.password)) {
+    warnings.push({ code: "HY2_PASSWORD_MISSING", node: name, detail: "Hysteria2 password is missing; node omitted." });
+    return null;
   }
 
-  if (proxy.ports) {
-    const serverPorts = str(proxy.ports).replace(/(\d+)-(\d+)/g, '$1:$2');
-    params.push(`server-ports=${q(serverPorts)}`);
-    if (proxy['hop-interval'] != null) {
-      const hop = Number(proxy['hop-interval']);
-      if (Number.isFinite(hop) && hop > 0) params.push(`hop-interval=${hop}`);
-      else warnings.push({
-        code: 'HY2_HOP_INTERVAL_UNSUPPORTED',
-        node: name,
-        detail: `Mihomo hop-interval=${proxy['hop-interval']} cannot be represented by Loon's numeric hop-interval; Loon default will be used.`
-      });
-    }
+  const obfs = cleanName(proxy.obfs).toLowerCase();
+  if (obfs && obfs !== "salamander") {
+    warnings.push({ code: "HY2_OBFS_UNSUPPORTED", node: name, detail: `Mihomo Hysteria2 obfs=${obfs} is not supported by Loon; node omitted rather than creating an unusable proxy.` });
+    return null;
+  }
+  if (obfs === "salamander" && !cleanName(proxy["obfs-password"])) {
+    warnings.push({ code: "HY2_OBFS_PASSWORD_MISSING", node: name, detail: "Hysteria2 Salamander obfuscation password is missing; node omitted." });
+    return null;
+  }
+
+  const rawFingerprint = cleanName(proxy.fingerprint);
+  const normalizedFingerprint = rawFingerprint ? normalizeSha256(rawFingerprint) : null;
+  if (rawFingerprint && !normalizedFingerprint) {
+    warnings.push({ code: "HY2_CERT_FINGERPRINT_INVALID", node: name, detail: "Hysteria2 fingerprint must be 64 hex characters (SHA-256); node omitted rather than disabling certificate pinning." });
+    return null;
+  }
+
+  const params = [];
+  const sni = proxy.sni ?? proxy.servername;
+  if (sni) params.push(`sni=${pv(sni)}`);
+  if (proxy["skip-cert-verify"] != null) params.push(`skip-cert-verify=${bool(proxy["skip-cert-verify"])}`);
+  if (normalizedFingerprint) params.push(`tls-cert-sha256=${pv(normalizedFingerprint)}`);
+  addAlpn(proxy, params);
+
+  if (obfs === "salamander") {
+    params.push(`salamander-password=${q(proxy["obfs-password"])}`);
+  } else if (proxy["obfs-password"]) {
+    warnings.push({ code: "HY2_OBFS_PASSWORD_IGNORED", node: name, detail: "obfs-password supplied without obfs=salamander; it was ignored to preserve Mihomo's disabled-obfs semantics." });
+  }
+
+  // Loon HY2 compatibility: some device builds do not dial without server-ports,
+  // even for a single port. Repeating the sole port is equivalent to no hopping.
+  params.push(`server-ports=${q(hopPorts?.loonPorts || String(port))}`);
+  if (hasPorts && proxy["hop-interval"] != null) {
+    const value = cleanName(proxy["hop-interval"]);
+    const seconds = /^\d+(?:\.\d+)?\s*s?$/i.test(value) ? Number(value.replace(/\s*s$/i, "")) : NaN;
+    if (Number.isFinite(seconds) && seconds > 0) params.push(`hop-interval=${seconds}`);
+    else warnings.push({
+      code: "HY2_HOP_INTERVAL_UNSUPPORTED",
+      node: name,
+      detail: `Mihomo hop-interval=${value} cannot be represented by Loon's fixed numeric seconds; Loon's default interval will be used.`
+    });
   }
 
   const down = bandwidthMbps(proxy.down);
   if (down != null) params.push(`download-bandwidth=${down}`);
   else if (proxy.down != null) warnings.push({
-    code: 'HY2_DOWNLOAD_BANDWIDTH_UNSUPPORTED',
+    code: "HY2_DOWNLOAD_BANDWIDTH_UNSUPPORTED",
     node: name,
     detail: `Mihomo down=${proxy.down} could not be normalized to Mbps and was omitted.`
+  });
+  if (proxy.up != null) warnings.push({
+    code: "HY2_UPLOAD_BANDWIDTH_UNSUPPORTED",
+    node: name,
+    detail: "Mihomo Hysteria2 up is not a documented Loon Hysteria2 node parameter and was omitted."
   });
 
   addCommonNodeOptions(proxy, params);
   params.push(`udp=${bool(proxy.udp, true)}`);
-  return `${name} = Hysteria2,${proxy.server},${proxy.port},${q(proxy.password)},${params.join(',')}`;
+  return `${name} = Hysteria2,${server},${port},${q(proxy.password)},${params.join(",")}`;
 }
-

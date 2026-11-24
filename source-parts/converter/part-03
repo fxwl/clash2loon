@@ -46,6 +46,14 @@
     finalPolicy = groups.length ? cleanName(groups[0].name) : 'DIRECT';
   }
 
+  // Fail closed when FINAL references a legacy relay that could not be converted.
+  if (groups.some(group => cleanName(group.name) === finalPolicy && cleanName(group.type).toLowerCase() === 'relay')
+      && !validChainNames.includes(finalPolicy)) {
+    warnings.push({ code: 'FINAL_RELAY_UNAVAILABLE',
+      detail: 'FINAL references an unsupported relay; REJECT is used to prevent direct fallback.' });
+    finalPolicy = 'REJECT';
+  }
+
   const requestedControlPlanePolicy = cleanName(options.controlPlanePolicy || '');
   const requestedControlPlaneDomains = Array.isArray(options.controlPlaneDomains)
     ? options.controlPlaneDomains.map(cleanName).filter(Boolean)

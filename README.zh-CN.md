@@ -18,10 +18,23 @@ Clash2Loon 最初是在我长期使用 Loon 的过程中，受到 [可莉的 Loo
 如果你有 **Loon 插件**方面的需求，可以前往 [ProxyResource](https://github.com/luestr/ProxyResource) 查看。
 
 
+## v1.6.3 — 公开版功能同步
+
+本次将持续维护的通用协议和 Worker 优化同步到开源版，不包含私人订阅、密钥、个人插件清单及固定分流策略。
+
+- **协议支持：** VLESS、VMess、Trojan、AnyTLS、HY2、SOCKS5、Shadowsocks（受支持插件）、ShadowsocksR、HTTP/HTTPS 代理及 WireGuard。
+- **HY2：** 端口跳跃、`hop-interval`、SHA-256 TLS 证书指纹与 Salamander 混淆参数安全校验。
+- **REALITY：** 上游显式启用 X25519-MLKEM768 时匹配现代 Loon TLS Profile。
+- **中转链：** `dialer-proxy` 可引用具体节点或策略组，支持可安全映射的旧式两跳 `relay`；缺失、循环和明显不兼容的链路给出诊断并避免意外直连。
+- **订阅性能：** `/nodes` 默认不截断，支持手动分页；轻量节点转换、HTTP 请求大小与超时限制、可信 Rule Provider 元数据缓存，降低并发刷新时的 CPU 开销。
+- **Provider：** 支持所引用的 HTTP/inline Proxy Provider、inline Rule Provider，拒绝不可信来源参数注入。
+
+公开版依旧使用中立的 Loon Base；插件通过 `MANAGED_PLUGINS_JSON` 配置，控制面分流通过 `CONTROL_PLANE_POLICY` 与 `CONTROL_PLANE_DOMAINS` 配置，不内置私人域名。
+
 ## 主要能力
 
 - 将 Clash / Mihomo YAML 转换为 Loon Remote Configuration。
-- 支持 VLESS、VLESS Reality、VLESS WebSocket、Trojan、Hysteria2、SOCKS5（`socks` / `socks5`）。
+- 支持 VLESS（含 REALITY、WebSocket）、VMess、Trojan、HY2、AnyTLS、SOCKS5、SS/SSR、HTTP(S) 代理与 WireGuard，不能等价转换的参数明确告警。
 - 将 `dialer-proxy` 转换为 Loon Proxy Chain，包括 SOCKS5 落地节点。
 - 保留 YAML 中定义的节点、策略组、规则、Rule Provider 和 MATCH / FINAL 逻辑。
 - 成功转换的节点通过 `/nodes` 作为 `C2L_Nodes` `[Remote Proxy]` 链接节点加载；策略组中引用的所有链接节点都会通过限定 `C2L_Nodes` 来源的精确 `NameRegex` Remote Filter 进入策略。
@@ -305,7 +318,7 @@ npm test -- /path/to/clash.yaml
 
 ## 已知限制
 
-- 不会尝试支持所有 Clash 协议，目前重点是 VLESS / Trojan / Hysteria2 / SOCKS5。
+- 不会尝试支持所有 Clash 协议，现已覆盖 VLESS、VMess、Trojan、HY2、AnyTLS、SOCKS5、SS/SSR、HTTP(S) 与 WireGuard；未文档化的行为不会盲目兼容。
 - Mihomo 的部分专有字段在 Loon 中没有一一对应能力，会被省略并产生 warning。
 - `PROCESS-NAME` 等桌面专用规则不会强行映射到 iOS。
 - Binary `.mrs` Rule Provider 只有在可以推导出已知文本 sibling 时才能转换。

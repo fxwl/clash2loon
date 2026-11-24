@@ -18,10 +18,23 @@ Special thanks to Kelee for the long-term work in organizing, maintaining, and s
 If you are looking for **Loon plugins**, visit [ProxyResource](https://github.com/luestr/ProxyResource).
 
 
+## Version 1.6.3 — Public functionality update
+
+The public edition now includes reusable protocol and Worker optimizations from the maintained converter, without private deployments, credentials, plugin selections or site-specific policy names.
+
+- **Protocols:** VLESS, VMess, Trojan, AnyTLS, Hysteria2, SOCKS5, Shadowsocks (supported plugins), ShadowsocksR, HTTP/HTTPS proxies and WireGuard.
+- **Hysteria2:** port-hopping, `hop-interval`, validated SHA-256 TLS pinning and Salamander options, with warnings and safe handling for invalid nodes.
+- **REALITY:** modern X25519-MLKEM768 TLS profile mapping when explicitly enabled upstream.
+- **Chaining:** `dialer-proxy` targeting an existing policy group or a single proxy node; safe two-hop legacy `relay` conversion; missing, cyclic or incompatible hops produce diagnostics rather than a silent direct fallback.
+- **Subscriptions:** complete `/nodes` output by default with optional pagination; efficient node-only conversion, bounded upstream fetches and cached trusted Rule Provider metadata to reduce concurrent-request CPU costs.
+- **Providers:** referenced HTTP/inline proxy providers and inline rule providers, with source URL injection protection.
+
+Public configuration remains neutral: keep the embedded Loon base, configure plugins with `MANAGED_PLUGINS_JSON`, and use `CONTROL_PLANE_POLICY` and `CONTROL_PLANE_DOMAINS` only if needed. No production hostnames or subscriptions are preconfigured.
+
 ## Features
 
 - Convert Clash / Mihomo YAML into a Loon Remote Configuration.
-- Support VLESS, VLESS Reality, VLESS WebSocket, Trojan, Hysteria2, and SOCKS5 (`socks` / `socks5`).
+- Support VLESS (including REALITY and WebSocket), VMess, Trojan, Hysteria2, AnyTLS, SOCKS5, Shadowsocks/SSR, HTTP(S) proxies and WireGuard, with explicit warnings for unmappable options.
 - Convert `dialer-proxy` relationships into Loon Proxy Chains, including SOCKS5 landing nodes.
 - Preserve YAML-defined nodes, policy groups, rules, Rule Providers, and MATCH / FINAL semantics.
 - Deliver successfully converted nodes through the linked `C2L_Nodes` `[Remote Proxy]` subscription backed by `/nodes`; every linked node used by a policy group is referenced through an exact `NameRegex` Remote Filter.
@@ -304,7 +317,7 @@ Do not commit your real test YAML.
 
 ## Known Limitations
 
-- The converter intentionally does not attempt to support every Clash protocol. The current focus is VLESS, Trojan, Hysteria2, and SOCKS5.
+- The converter intentionally does not attempt to support every Clash protocol. Supported implementations include VLESS, VMess, Trojan, HY2, AnyTLS, SOCKS5, SS/SSR, HTTP(S) and WireGuard; undocumented protocol features are rejected or flagged rather than guessed.
 - Some Mihomo-specific fields have no one-to-one Loon equivalent and are omitted with warnings.
 - Desktop-only rules such as `PROCESS-NAME` are not force-mapped to iOS.
 - Binary `.mrs` Rule Providers can only be converted when a known text sibling can be derived.
