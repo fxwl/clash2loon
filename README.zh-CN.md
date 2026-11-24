@@ -34,7 +34,7 @@ Clash2Loon 最初是在我长期使用 Loon 的过程中，受到 [可莉的 Loo
 ## 主要能力
 
 - 将 Clash / Mihomo YAML 转换为 Loon Remote Configuration。
-- 支持 VLESS、VLESS Reality、VLESS WebSocket、Trojan、Hysteria2、SOCKS5（`socks` / `socks5`）。
+- 支持 VLESS（含 REALITY、WebSocket）、VMess、Trojan、HY2、AnyTLS、SOCKS5、SS/SSR、HTTP(S) 代理与 WireGuard，不能等价转换的参数明确告警。
 - 将 `dialer-proxy` 转换为 Loon Proxy Chain，包括 SOCKS5 落地节点。
 - 保留 YAML 中定义的节点、策略组、规则、Rule Provider 和 MATCH / FINAL 逻辑。
 - 成功转换的节点通过 `/nodes` 作为 `C2L_Nodes` `[Remote Proxy]` 链接节点加载；策略组中引用的所有链接节点都会通过限定 `C2L_Nodes` 来源的精确 `NameRegex` Remote Filter 进入策略。
@@ -318,7 +318,7 @@ npm test -- /path/to/clash.yaml
 
 ## 已知限制
 
-- 不会尝试支持所有 Clash 协议，目前重点是 VLESS / Trojan / Hysteria2 / SOCKS5。
+- 不会尝试支持所有 Clash 协议，现已覆盖 VLESS、VMess、Trojan、HY2、AnyTLS、SOCKS5、SS/SSR、HTTP(S) 与 WireGuard；未文档化的行为不会盲目兼容。
 - Mihomo 的部分专有字段在 Loon 中没有一一对应能力，会被省略并产生 warning。
 - `PROCESS-NAME` 等桌面专用规则不会强行映射到 iOS。
 - Binary `.mrs` Rule Provider 只有在可以推导出已知文本 sibling 时才能转换。
