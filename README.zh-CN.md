@@ -18,6 +18,19 @@ Clash2Loon 最初是在我长期使用 Loon 的过程中，受到 [可莉的 Loo
 如果你有 **Loon 插件**方面的需求，可以前往 [ProxyResource](https://github.com/luestr/ProxyResource) 查看。
 
 
+## v1.6.3 — 公开版功能同步
+
+本次将持续维护的通用协议和 Worker 优化同步到开源版，不包含私人订阅、密钥、个人插件清单及固定分流策略。
+
+- **协议支持：** VLESS、VMess、Trojan、AnyTLS、HY2、SOCKS5、Shadowsocks（受支持插件）、ShadowsocksR、HTTP/HTTPS 代理及 WireGuard。
+- **HY2：** 端口跳跃、`hop-interval`、SHA-256 TLS 证书指纹与 Salamander 混淆参数安全校验。
+- **REALITY：** 上游显式启用 X25519-MLKEM768 时匹配现代 Loon TLS Profile。
+- **中转链：** `dialer-proxy` 可引用具体节点或策略组，支持可安全映射的旧式两跳 `relay`；缺失、循环和明显不兼容的链路给出诊断并避免意外直连。
+- **订阅性能：** `/nodes` 默认不截断，支持手动分页；轻量节点转换、HTTP 请求大小与超时限制、可信 Rule Provider 元数据缓存，降低并发刷新时的 CPU 开销。
+- **Provider：** 支持所引用的 HTTP/inline Proxy Provider、inline Rule Provider，拒绝不可信来源参数注入。
+
+公开版依旧使用中立的 Loon Base；插件通过 `MANAGED_PLUGINS_JSON` 配置，控制面分流通过 `CONTROL_PLANE_POLICY` 与 `CONTROL_PLANE_DOMAINS` 配置，不内置私人域名。
+
 ## 主要能力
 
 - 将 Clash / Mihomo YAML 转换为 Loon Remote Configuration。
