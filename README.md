@@ -18,9 +18,7 @@ Special thanks to Kelee for the long-term work in organizing, maintaining, and s
 If you are looking for **Loon plugins**, visit [ProxyResource](https://github.com/luestr/ProxyResource).
 
 
-## Version 1.6.3 — Public functionality update
-
-The public edition now includes reusable protocol and Worker optimizations from the maintained converter, without private deployments, credentials, plugin selections or site-specific policy names.
+## Version 1.6.3 — What's new
 
 - **Protocols:** VLESS, VMess, Trojan, AnyTLS, Hysteria2, SOCKS5, Shadowsocks (supported plugins), ShadowsocksR, HTTP/HTTPS proxies and WireGuard.
 - **Hysteria2:** port-hopping, `hop-interval`, validated SHA-256 TLS pinning and Salamander options, with warnings and safe handling for invalid nodes.
@@ -28,8 +26,6 @@ The public edition now includes reusable protocol and Worker optimizations from 
 - **Chaining:** `dialer-proxy` targeting an existing policy group or a single proxy node; safe two-hop legacy `relay` conversion; missing, cyclic or incompatible hops produce diagnostics rather than a silent direct fallback.
 - **Subscriptions:** complete `/nodes` output by default with optional pagination; efficient node-only conversion, bounded upstream fetches and cached trusted Rule Provider metadata to reduce concurrent-request CPU costs.
 - **Providers:** referenced HTTP/inline proxy providers and inline rule providers, with source URL injection protection.
-
-Public configuration remains neutral: keep the embedded Loon base, configure plugins with `MANAGED_PLUGINS_JSON`, and use `CONTROL_PLANE_POLICY` and `CONTROL_PLANE_DOMAINS` only if needed. No production hostnames or subscriptions are preconfigured.
 
 ## Features
 
@@ -229,7 +225,7 @@ See [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 ## Managed Plugins
 
-The public edition ships with **no built-in plugin catalog**.
+The default managed plugin list is empty.
 
 To inject your own persistent Loon plugin list, configure:
 
@@ -250,7 +246,7 @@ Prefer storing this as a Cloudflare Secret rather than committing it to GitHub.
 
 ## Control-plane Resource Routing
 
-Some plugin, rule, or resource hosts may need a specific proxy policy while Loon is enabled. The public edition does not hard-code any such domain.
+Some plugin, rule, or resource hosts may need a specific proxy policy while Loon is enabled. Set the desired hostnames and policy with the variables below.
 
 Optional configuration:
 
@@ -275,9 +271,9 @@ Never commit:
 - real Clash / Mihomo subscription URLs;
 - proxy UUIDs, passwords, Reality keys, or other credentials;
 - Worker `ACCESS_TOKEN` values;
-- private plugin tokens;
+- plugin access tokens;
 - generated `/nodes` output or `.lcf` files;
-- private deployment metadata you do not want to publish.
+- deployment metadata containing internal infrastructure details.
 
 Common local sensitive files are ignored by `.gitignore`.
 
