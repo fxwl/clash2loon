@@ -1,0 +1,33 @@
+import {readFile,writeFile} from 'node:fs/promises';
+function replace(source, from, to, label) {if(!source.includes(from))throw Error('Missing anchor: '+label);return source.replace(from,to);}
+let c=await readFile('src/converter.js','utf8');
+c=replace(c,"const BUILTIN_POLICIES = new Set([","import { convertExtendedProxyLine, parseInlineRule, normalizeProviderText } from './upgrade.js';\nconst BUILTIN_POLICIES = new Set([",'import');
+c=replace(c,"    default:\n      warnings.push({ code: 'PROXY_TYPE_UNSUPPORTED'","    default:\n      { const result = convertExtendedProxyLine(proxy, warnings); if (result !== undefined) return result; }\n      warnings.push({ code: 'PROXY_TYPE_UNSUPPORTED'",'protocol switch');
+const oldRules=c.slice(c.indexOf('function getRulePolicy(rule) {'),c.indexOf('function encodePathSegment(s)'));
+if(!oldRules.startsWith('function getRulePolicy'))throw Error('rule helpers absent');
+c=c.replace(oldRules,"function getRulePolicy(rule) { const parts=String(rule).split(',').map(x=>x.trim()); if(parts[0]==='MATCH')return parts[1]||null; if(parts[0]==='RULE-SET')return parts[2]||null; return parseInlineRule(rule)?.policy||null; }\nfunction stripInlinePolicy(rule) { return parseInlineRule(rule)?.rule||null; }\n");
+c=replace(c,"source: provider.url, behavior: provider.behavior || 'classical', format: provider.format || ''","behavior: provider.behavior || 'classical', format: provider.format || ''",'provider url query');
+const normPos=c.indexOf('export function normalizeRuleText(');
+if(normPos<0)throw Error('normalizeRuleText absent');
+c=c.slice(0,normPos)+"export function normalizeRuleText(text, behavior, addNoResolve = true) { return normalizeProviderText(text, behavior, addNoResolve); }\n";
+c=c.replaceAll('# Clash2Loon v1.5.26','# Clash2Loon v1.6.3');
+await writeFile('src/converter.js',c);
+let i=await readFile('src/index.js','utf8');
+i=replace(i,"import { parse } from 'yaml';","import { parse } from 'yaml';\nimport {fetchBounded,resolveProxyProviders,inlineProviderRules} from './upgrade.js';",'import');
+i=replace(i,'function cacheKeyFor(request, suffix = \'\') {',"function ttlOf(v,fallback){if(v==null||String(v).trim()==='')return fallback;const n=Number(v);return Number.isFinite(n)?Math.max(0,Math.trunc(n)):fallback;}\nfunction cacheKeyFor(request, suffix = '') {",'ttl');
+i=i.replaceAll('Math.max(0, Number(env.CACHE_TTL) || 300)','ttlOf(env.CACHE_TTL,300)').replaceAll('Math.max(0, Number(env.RULE_CACHE_TTL) || 3600)','ttlOf(env.RULE_CACHE_TTL,3600)');
+i=replace(i,'  const clash = parse(upstream.body);\n  if (!clash || typeof clash !== \'object\') throw new Error(\'Upstream content is not a Clash YAML object.\');',"  const clashSource = parse(upstream.body);\n  if (!clashSource || typeof clashSource !== 'object') throw new Error('Upstream content is not a Clash YAML object.');\n  const providerWarnings=[];\n  const clash=await resolveProxyProviders(clashSource,providerWarnings);",'providers');
+i=replace(i,'      ...rawConverted.warnings,','      ...providerWarnings,\n      ...rawConverted.warnings,','provider warnings');
+i=replace(i,'  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 500) : 500;', '  const limit = u.searchParams.has(\'limit\') && Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.trunc(rawLimit),500) : Number.POSITIVE_INFINITY;','node cap');
+i=replace(i,"    'trojan', 'hysteria2', 'socks5', 'landing', 'regular'","    'trojan', 'hysteria2', 'socks5', 'vmess', 'anytls', 'ss', 'ssr', 'http', 'https', 'wireguard', 'landing', 'regular'",'node type');
+i=replace(i,"  else if (type !== 'all') entries = entries.filter(n => n.subtype === type);","  else if (type !== 'all') entries = entries.filter(n => type==='wireguard'?['wg','wireguard'].includes(n.type):type==='ss'?['ss','shadowsocks'].includes(n.type):n.type===type || n.subtype===type);",'node filter');
+i=replace(i,'  const source = u.searchParams.get(\'source\');\n  if (!source) return text(', '  const source = u.searchParams.get(\'source\');\n  if (!source) return text(','provider source anchor'); 
+i=replace(i,'  const provider = {\n    url: source,\n    behavior: u.searchParams.get(\'behavior\') || \'classical\',\n    format: u.searchParams.get(\'format\') || \'\'\n  };\n\n  const result = await fetchProviderSource(providerName, provider);',"  const upstream=await fetchUpstreamClash(env);\n  const config=parse(upstream.body);\n  const provider=config?.['rule-providers']?.[providerName];\n  if(!provider)return text('Unknown provider\\n',404);\n  const result=provider.type==='inline'?{body:inlineProviderRules(provider),sourceUrl:'inline'}:await fetchProviderSource(providerName,provider);",'provider lookup');
+i=replace(i,"  if (!source) return text(`Missing source for rule provider: ${providerName}\\n`, 400);","  // Provider links are looked up by name in the trusted YAML. Legacy query inputs are ignored.",'no source required');
+i=replace(i,"      'x-clash2loon-source': result.sourceUrl","      'x-clash2loon-source': result.sourceUrl === 'inline' ? 'inline' : 'external'",'header privacy');
+i=replace(i,"  const cacheVariant = `nodes:${type}:${offset}:${limit}`;","  const cacheVariant = `nodes:v1.6.3:${type}:${offset}:${limit}`;","node cache");
+i=i.replaceAll('loon:v1.5.26:', 'loon:v1.6.3:').replaceAll('status:v1.5.26:', 'status:v1.6.3:');
+
+i=replace(i,"      console.error(error);","      console.error(JSON.stringify({event:'request_failed',path:new URL(request.url).pathname,error:String(error?.message||error).slice(0,150)}));",'log');
+await writeFile('src/index.js',i);
+console.log('public v1.6 core upgrades applied');
