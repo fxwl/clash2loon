@@ -26,6 +26,14 @@ replaceRange('async function fetchUpstreamClash(env) {','async function loadMode
 '    etag:response.headers.get("etag")||"",lastModified:response.headers.get("last-modified")||""};',
 '}'
 ].join('\n'));
+// The public edition exposes configurable control-plane domains.
+// Keep parseCsv while replacing the upstream fetch implementation.
+if (!source.includes('function parseCsv(value) {')) {
+  const target='async function loadModel(request, env) {';
+  if (!source.includes(target)) throw Error('Missing loadModel for parseCsv');
+  source=source.replace(target,
+    "function parseCsv(value) {\\n  return String(value || '').split(',').map(v => v.trim()).filter(Boolean);\\n}\\n\\n".replace(/\\n/g, '\n')+target);
+}
 const first=source.indexOf('async function fetchProviderSource('),last=source.indexOf('async function handleRule(',first);
 if(first<0||last<0)throw Error('Missing provider function');
 const provider=source.slice(first,last);
