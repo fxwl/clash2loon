@@ -27,6 +27,13 @@ jobs:
       - name: Materialize and run regression suite
         run: npm run test:regression
 
+      - name: Check generated Worker syntax and bundling
+        run: |
+          node --check src/index.js
+          node --check src/converter.js
+          node --check src/upgrade.js
+          npx wrangler deploy --dry-run --outdir .wrangler-preview
+
       - name: Verify sensitive local files are not tracked
         shell: bash
         run: |
