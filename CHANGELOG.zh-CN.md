@@ -2,7 +2,7 @@
 
 [English](CHANGELOG.md) | [简体中文](CHANGELOG.zh-CN.md)
 
-Clash2Loon 的公开版本重要变更记录在这里。
+Clash2Loon 的重要变更记录在这里。
 
 在转换器仍持续演进期间，本项目采用务实的版本管理方式。任何可能影响生成后 Loon 配置兼容性的改动都会明确标注。
 
@@ -14,10 +14,6 @@ Clash2Loon 的公开版本重要变更记录在这里。
 - `dialer-proxy` 直接节点中转及安全两跳 `relay`；异常链路提供明确告警，避免误直连。
 - `/nodes` 轻量转换、默认完整节点输出、请求大小与超时限制、可信规则 Provider 缓存。
 - 增加脱敏协议、HY2、中转链和 Worker 回归测试。
-
-### 保留
-- 中立 Base、环境变量插件管理、可配置控制面分流和公开通用部署配置。
-- 中英文文档及 MIT 许可证，不包含私人节点、订阅及密钥。
 
 ## [Unreleased]
 
@@ -40,7 +36,7 @@ Clash2Loon 的公开版本重要变更记录在这里。
 - Hysteria2 支持端口跳跃（Port Hopping）、hop interval 与下载带宽映射。
 - 补充 fast-open、block-quic、ip-mode、server-dns、tls-profile、ALPN 等可表达节点参数。
 - Clash `fallback` 与 `load-balance` 策略组优先映射为 Loon 原生策略组，不再统一降级为 `select`。
-- 公开版继续保持默认不内置私人插件，插件仍通过 `MANAGED_PLUGINS_JSON` 自行配置。
+- 支持使用 `MANAGED_PLUGINS_JSON` 配置插件列表。
 
 ## [1.5.25] - 2026-09-21
 
@@ -105,14 +101,13 @@ Clash2Loon 的公开版本重要变更记录在这里。
 
 ### 兼容性
 
-- `MANAGED_PLUGINS_JSON`、`CONTROL_PLANE_POLICY`、`CONTROL_PLANE_DOMAINS` 等公开版通用能力保持不变。
-- 本版本不包含生产订阅地址、访问 Token、私人部署域名或私人插件配置。
+- 兼容 `MANAGED_PLUGINS_JSON`、`CONTROL_PLANE_POLICY`、`CONTROL_PLANE_DOMAINS` 等配置项。
 
 ## [1.5.16] - 2026-09-14
 
 ### 新增
 
-- 首个公开版本，使用与私人生产仓库完全分离的全新 Git 历史。
+- 发布项目初始版本。
 - Clash / Mihomo YAML → Loon Remote Configuration 转换。
 - 支持 VLESS、VLESS Reality、VLESS WebSocket、Trojan、Hysteria2。
 - `dialer-proxy` → Loon Proxy Chain 转换。
@@ -122,7 +117,7 @@ Clash2Loon 的公开版本重要变更记录在这里。
 - Rule Provider 转换与 Worker 托管规则输出。
 - `source`、`performance`、`balanced`、`battery` 四种 url-test 功耗档位。
 - 可选 `LOON_BASE_URL`，用于保留 Loon 原生区段。
-- 可选 `MANAGED_PLUGINS_JSON`，无需把私人插件清单提交到仓库即可持久化插件。
+- 可通过 `MANAGED_PLUGINS_JSON` 持久化插件配置。
 - 可选 `CONTROL_PLANE_POLICY` 与 `CONTROL_PLANE_DOMAINS` 控制面资源分流覆盖。
 - Worker 自域名绕过处理，提高远程配置刷新稳定性。
 - 范围刻意保持收敛的 Apple 系统服务兼容保护。
@@ -134,7 +129,6 @@ Clash2Loon 的公开版本重要变更记录在这里。
 
 ### 隐私与安全
 
-- 公开仓库不包含真实订阅 URL、访问 Token、代理凭据、私人插件 URL、私人部署域名或生产配置。
 - 常见本地 Secret / 配置文件通过 `.gitignore` 排除。
 - 敏感运行时值应通过 Cloudflare Worker Secrets 或本地 `.dev.vars` 提供。
 

@@ -2,7 +2,7 @@
 
 [English](CHANGELOG.md) | [简体中文](CHANGELOG.zh-CN.md)
 
-All notable public changes to Clash2Loon are documented here.
+Notable changes to Clash2Loon are documented here.
 
 This project follows a pragmatic versioning model while the converter is still evolving. Compatibility changes that may affect generated Loon configuration are called out explicitly.
 
@@ -14,10 +14,6 @@ This project follows a pragmatic versioning model while the converter is still e
 - Direct-node `dialer-proxy` chaining and safe two-hop legacy relay handling, with fail-closed diagnostics.
 - Lightweight unlimited-by-default `/nodes` conversion, bounded fetches and trusted provider manifest cache.
 - Sanitized protocol, Worker, HY2 and relay regression tests.
-
-### Preserved
-- Neutral embedded Loon base, environment-driven managed plugins and configurable control-plane domains.
-- Generic worker deployment settings, bilingual public documentation and MIT license.
 
 ## [Unreleased]
 
@@ -40,7 +36,7 @@ This project follows a pragmatic versioning model while the converter is still e
 - Add Hysteria2 port hopping, hop interval, and download bandwidth mappings.
 - Preserve additional supported node options such as fast-open, block-quic, ip-mode, server-dns, tls-profile, and ALPN.
 - Preserve Clash `fallback` and `load-balance` groups as native Loon policy groups where mappings are defined instead of always downgrading to `select`.
-- Keep the public edition free of bundled personal plugins; users can continue to configure plugins through `MANAGED_PLUGINS_JSON`.
+- Plugins can be configured through `MANAGED_PLUGINS_JSON`.
 
 ## [1.5.25] - 2026-09-21
 
@@ -105,14 +101,13 @@ This project follows a pragmatic versioning model while the converter is still e
 
 ### Compatibility
 
-- Existing public environment-driven features such as `MANAGED_PLUGINS_JSON`, `CONTROL_PLANE_POLICY`, and `CONTROL_PLANE_DOMAINS` remain unchanged.
-- No production subscription URL, access token, private deployment domain, or private plugin configuration is included in this release.
+- `MANAGED_PLUGINS_JSON`, `CONTROL_PLANE_POLICY`, and `CONTROL_PLANE_DOMAINS` remain available.
 
 ## [1.5.16] - 2026-09-14
 
 ### Added
 
-- Initial public release with a clean Git history separated from the private production repository.
+- Initial project release.
 - Clash / Mihomo YAML → Loon Remote Configuration conversion.
 - VLESS, VLESS Reality, VLESS WebSocket, Trojan, and Hysteria2 support.
 - `dialer-proxy` → Loon Proxy Chain conversion.
@@ -122,7 +117,7 @@ This project follows a pragmatic versioning model while the converter is still e
 - Rule Provider conversion and Worker-hosted rule output.
 - `source`, `performance`, `balanced`, and `battery` URL-test power profiles.
 - Optional `LOON_BASE_URL` support for Loon-native sections.
-- Optional `MANAGED_PLUGINS_JSON` plugin persistence without committing private plugin lists.
+- Optional `MANAGED_PLUGINS_JSON` plugin configuration.
 - Optional `CONTROL_PLANE_POLICY` and `CONTROL_PLANE_DOMAINS` resource-routing overrides.
 - Worker self-host bypass handling for remote configuration refreshes.
 - Apple system-service compatibility guards kept intentionally narrow.
@@ -134,7 +129,6 @@ This project follows a pragmatic versioning model while the converter is still e
 
 ### Privacy and Security
 
-- No real subscription URL, access token, proxy credential, private plugin URL, private deployment domain, or generated production configuration is included in the public repository.
 - Common local secret/configuration files are excluded through `.gitignore`.
 - Sensitive runtime values are designed to be supplied through Cloudflare Worker Secrets or local `.dev.vars`.
 

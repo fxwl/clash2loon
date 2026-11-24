@@ -189,4 +189,4 @@ Secrets 应保存在：
 - Cloudflare Worker Secrets；或
 - 本地开发时的 `.dev.vars`。
 
-生成结果和本地私有 fixture 都已通过 `.gitignore` 排除。
+生成结果和本地测试数据通过 `.gitignore` 排除。

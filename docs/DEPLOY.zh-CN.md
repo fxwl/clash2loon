@@ -22,7 +22,7 @@ npm install
 
 ## 2. 检查 `wrangler.jsonc`
 
-公开版默认值刻意保持通用：
+默认配置如下：
 
 ```json
 {

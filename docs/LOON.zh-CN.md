@@ -76,11 +76,11 @@ CONTROL_PLANE_POLICY
 CONTROL_PLANE_DOMAINS
 ```
 
-不要把第三方资源域名直接写死到公开仓库源码中。
+按需通过配置项指定第三方资源域名。
 
 ## Loon Base
 
-公开版内置 Base 故意保持最小化。
+内置 Base 提供基础配置。
 
 如果需要更高级的 Loon 原生能力，例如：
 

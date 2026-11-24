@@ -182,7 +182,7 @@ During Loon-base merge, that hostname is appended to selected General settings s
 
 ## Security boundary
 
-The Worker receives real subscription data at runtime but the public repository does not need to contain any of it.
+The Worker loads subscription content at runtime.
 
 Secrets live in:
 
